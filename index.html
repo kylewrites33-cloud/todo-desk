@@ -113,7 +113,7 @@ details.sop summary { cursor: pointer; font-weight: 600; display: flex; gap: 8px
 details.sop .md { margin-top: 8px; }
 
 .main { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 22px; align-items: start; }
-aside.rail { display: grid; gap: 18px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+aside.rail { display: grid; gap: 18px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto; }
 .rail h2 { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); margin: 0 0 6px 10px; font-weight: 600; }
 .navlist { display: grid; gap: 2px; }
 .nav { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; padding: 7px 10px; border-radius: 8px; text-align: left; }
@@ -156,6 +156,10 @@ a.chip:hover { border-color: var(--accent); color: var(--accent); }
 .chip.doing { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
 .chip.pri { color: var(--late); border-color: transparent; background: var(--late-soft); font-weight: 600; }
 .notes-flag { color: var(--faint); }
+.ract { display: flex; gap: 6px; align-items: center; }
+.sched-btn { padding: 2px 8px; font-size: 12.5px; }
+.sched { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 0 12px 11px 46px; }
+.sched input[type=date] { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 4px 8px; }
 .star { border: 0; background: transparent; padding: 2px 4px; font-size: 17px; line-height: 1; color: var(--line); }
 .star:hover, .star[aria-pressed="true"] { color: var(--soon); }
 .lrow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 11px 12px; border-top: 1px solid var(--line); }
@@ -212,7 +216,7 @@ table.data td.note { white-space: normal; min-width: 220px; color: var(--muted);
 
 @media (max-width: 860px) {
   .main, .cols { grid-template-columns: minmax(0, 1fr); }
-  aside.rail { position: static; }
+  aside.rail { position: static; max-height: none; overflow: visible; }
   .navlist.projects, .navlist.views { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
   .navlist .nav { width: auto; white-space: nowrap; }
   .navlist.projects .nav { border: 1px solid var(--line); background: var(--panel); }
@@ -650,7 +654,9 @@ function view_(t) {
 }
 function tasks() { return entries.filter((e) => e.type === "task").map(view_); }
 const openTasks = () => tasks().filter((t) => !t.done);
-function sortTasks(list) { return list.slice().sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || (a.due || "9999").localeCompare(b.due || "9999")); }
+function sortTasks(list) { return list.slice().sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || (a.due || "9999").localeCompare(b.due || "9999") || (b.added || "").localeCompare(a.added || "")); }
+// To-dos with no due date: newest added first, so nothing slides out of sight unnoticed.
+const byAdded = (list) => list.slice().sort((a, b) => (b.added || "").localeCompare(a.added || ""));
 function visible(list) {
   let out = list;
   if (projectFilter) out = out.filter((t) => t.project === projectFilter);
@@ -689,16 +695,26 @@ function taskHtml(t, showProject = true) {
   if (t.project && showProject) chips.push(`<span class="chip"><span class="dot" style="background:${projColor(t.project)}"></span>${esc(t.project)}</span>`);
   if (t.status === "doing") chips.push(`<span class="chip doing">In progress</span>`);
   if (t.status === "waiting") chips.push(`<span class="chip wait">Waiting${t.waiting ? " on " + esc(t.waiting) : ""}</span>`);
+  if (!t.due && !t.done && t.added) chips.push(`<span class="chip">Added ${esc(fmtDay(t.added))}</span>`);
   if (t.notes) chips.push(`<span class="notes-flag">Notes</span>`);
   const isOpen = openKey === t.key;
   return `<li class="task p-${t.priority || "med"} ${t.done ? "done" : ""}" data-key="${esc(t.key)}">
     <div class="trow">
       <button class="check" data-act="toggle" aria-label="${t.done ? "Mark not done" : "Mark done"}"></button>
       <button class="tbody" data-act="open" aria-expanded="${isOpen}"><span class="ttitle">${esc(t.title)}</span>${chips.length ? `<span class="meta">${chips.join("")}</span>` : ""}</button>
-      ${t.done ? "<span></span>" : `<button class="star" data-act="star" aria-pressed="${t.star}" title="${t.star ? "Remove from Today" : "Add to Today"}" aria-label="Star for today">★</button>`}
+      ${t.done ? "<span></span>" : `<span class="ract">${t.due ? "" : `<button class="btn small sched-btn" data-act="sched" aria-expanded="${schedKey === t.key}" title="Give it a due date so it shows in Upcoming">Schedule</button>`}<button class="star" data-act="star" aria-pressed="${t.star}" title="${t.star ? "Unstar: take it off Today" : "Star: pin it to Today without a due date"}" aria-label="${t.star ? "Unstar" : "Star to pin to Today"}">★</button></span>`}
     </div>
+    ${schedKey === t.key && !t.due && !t.done ? schedHtml() : ""}
     ${isOpen ? editHtml(t) : ""}
   </li>`;
+}
+let schedKey = null;
+function schedHtml() {
+  const d = (n) => ymd(new Date(Date.now() + n * 86400000));
+  const dow = new Date().getDay();
+  const friday = d(((5 - dow + 7) % 7) || 7), monday = d(((1 - dow + 7) % 7) || 7);
+  const opts = [["Today", d(0)], ["Tomorrow", d(1)], ["Friday", friday], ["Next Monday", monday]];
+  return `<div class="sched"><span class="rm">Due</span>${opts.map(([l, v]) => `<button class="btn small" type="button" data-act="setdue" data-due="${v}">${l}</button>`).join("")}<input type="date" data-setdue aria-label="Pick a due date"></div>`;
 }
 function editHtml(t) {
   const opts = (pairs, cur) => pairs.map(([k, v]) => `<option value="${esc(k)}" ${k === cur ? "selected" : ""}>${esc(v)}</option>`).join("");
@@ -743,7 +759,7 @@ function todosListHtml() {
     if (!body) body = `<div class="empty">Nothing due today. Star a to-do to pin it here.</div>` + group("Coming up next", o.filter((t) => t.due).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 5));
   } else if (view === "upcoming") {
     body = group("Overdue", by((n) => n < 0), "late") + group("Today", by((n) => n === 0)) + group("Tomorrow", by((n) => n === 1)) +
-      group("Next 7 days", by((n) => n > 1 && n <= 7)) + group("Later", by((n) => n > 7)) + group("No due date", sortTasks(o.filter((t) => !t.due)));
+      group("Next 7 days", by((n) => n > 1 && n <= 7)) + group("Later", by((n) => n > 7)) + group("No due date · newest added first", byAdded(o.filter((t) => !t.due)));
   } else if (view === "projects") {
     body = D.projects.map((p) => group(p.name, sortTasks(o.filter((t) => t.project === p.name)), "", false)).join("") + group("No project", sortTasks(o.filter((t) => !t.project)));
   } else if (view === "waiting") {
@@ -1516,6 +1532,8 @@ document.addEventListener("click", (e) => {
   const a = act.dataset.act;
   if (a === "open") { openKey = openKey === key ? null : key; armedDelete = null; render(); }
   else if (a === "close") { openKey = null; armedDelete = null; render(); }
+  else if (a === "sched") { schedKey = schedKey === key ? null : key; render(); }
+  else if (a === "setdue") setDue(key, act.dataset.due);
   else if (a === "toggle") {
     const done = !cur.done;
     mutateTodos((list) => { const t = findTask(list, key); if (!t) return false;
@@ -1529,7 +1547,13 @@ document.addEventListener("click", (e) => {
     mutateTodos((list) => { const t = findTask(list, key); if (!t) return false; list.splice(list.indexOf(t), 1); }, "delete: " + short(cur.title), "Deleted");
   }
 });
+function setDue(key, due) {
+  const cur = findTask(entries, key); if (!cur || !/^\d{4}-\d{2}-\d{2}$/.test(due || "")) return;
+  schedKey = null;
+  mutateTodos((list) => { const t = findTask(list, key); if (!t) return false; t.fields.due = due; }, "schedule: " + short(cur.title), "Scheduled for " + fmtDue(due) + ". It's in Upcoming now.");
+}
 document.addEventListener("change", (e) => {
+  if (e.target.matches("input[data-setdue]")) { setDue(e.target.closest("li.task")?.dataset.key, e.target.value); return; }
   const s = e.target.closest("select[data-reel]");
   if (!s) return;
   const path = s.dataset.reel, status = s.value;
