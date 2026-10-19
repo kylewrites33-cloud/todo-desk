@@ -625,7 +625,9 @@ $("settings").addEventListener("submit", (e) => {
 
 // ---------- start ----------
 render();
-if (!settings.key) showSettings(true); else reload();
+if (!settings.key || location.hash === "#settings") showSettings(true);
+if (settings.key) reload();
+window.addEventListener("hashchange", () => { if (location.hash === "#settings") showSettings(true); });
 window.addEventListener("focus", () => { if (!pending && settings.key) reload(); });
 setInterval(() => { if (!pending && settings.key && !document.hidden && !document.activeElement?.closest?.("form[data-edit]")) reload(); }, 120000);
 </script>
