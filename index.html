@@ -156,6 +156,8 @@ a.chip:hover { border-color: var(--accent); color: var(--accent); }
 .chip.doing { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
 .chip.pri { color: var(--late); border-color: transparent; background: var(--late-soft); font-weight: 600; }
 .notes-flag { color: var(--faint); }
+.followup { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; }
+.followup .formrow input[type=date] { flex: 0 0 auto; }
 .ract { display: flex; gap: 6px; align-items: center; }
 .sched-btn { padding: 2px 8px; font-size: 12.5px; }
 .sched { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 0 12px 11px 46px; }
@@ -695,6 +697,8 @@ function taskHtml(t, showProject = true) {
   if (t.project && showProject) chips.push(`<span class="chip"><span class="dot" style="background:${projColor(t.project)}"></span>${esc(t.project)}</span>`);
   if (t.status === "doing") chips.push(`<span class="chip doing">In progress</span>`);
   if (t.status === "waiting") chips.push(`<span class="chip wait">Waiting${t.waiting ? " on " + esc(t.waiting) : ""}</span>`);
+  if (t.t.fields.after) chips.push(`<span class="chip" title="${esc(t.t.fields.after)}">Follow-up to: ${esc(short(t.t.fields.after, 40))}</span>`);
+  if (t.done && t.t.fields.followup) chips.push(`<span class="chip" title="${esc(t.t.fields.followup)}">Next: ${esc(short(t.t.fields.followup, 40))}</span>`);
   if (!t.due && !t.done && t.added) chips.push(`<span class="chip">Added ${esc(fmtDay(t.added))}</span>`);
   if (t.notes) chips.push(`<span class="notes-flag">Notes</span>`);
   const isOpen = openKey === t.key;
@@ -728,6 +732,11 @@ function editHtml(t) {
       <label class="field">Waiting on<input name="waiting" value="${esc(t.waiting)}" placeholder="Person or team"></label>
       <label class="field wide">Notes<textarea name="notes">${esc(t.notes)}</textarea></label>
     </div>
+    ${t.done ? "" : `<div class="followup"><strong>Done, with a next step?</strong>
+      <div class="formrow"><input type="text" name="followup" placeholder="Type the follow-up to-do… e.g. Send Amy the final version" aria-label="Follow-up to-do">
+      <input type="date" name="followDue" value="${esc(t.due && t.due > todayStr() ? t.due : "")}" aria-label="Follow-up due date">
+      <button class="btn primary" type="submit" value="followup">Close and add follow-up</button></div>
+      <span class="hint">Marks this one done and adds the follow-up as a new open to-do with the same project and priority.</span></div>`}
     <div class="actions">
       <button class="btn primary" type="submit">Save</button>
       <button class="btn" type="button" data-act="close">Cancel</button>
@@ -1401,10 +1410,15 @@ document.addEventListener("submit", (e) => {
     }, "add project " + name, "Project added");
   } else if (f.matches("form[data-edit]")) {
     e.preventDefault();
-    const key = f.dataset.edit, fd = new FormData(f), status = fd.get("status");
+    const key = f.dataset.edit, fd = new FormData(f);
+    const followup = String(fd.get("followup") || "").replace(/[\[\]]/g, "").trim();
+    const wantsFollow = !!followup && (e.submitter?.value === "followup" || document.activeElement?.name === "followup" || document.activeElement?.name === "followDue");
+    if (e.submitter?.value === "followup" && !followup) { toast("Type the follow-up first."); f.querySelector("[name=followup]")?.focus(); return; }
+    const status = wantsFollow ? "done" : fd.get("status");
     openKey = null;
     mutateTodos((list) => {
       const t = findTask(list, key); if (!t) return false;
+      const wasAdmin = t.section === ADMIN;
       t.title = String(fd.get("title")).replace(/[\[\]]/g, "").trim() || t.title;
       const project = fd.get("project");
       t.fields.project = project === ADMIN && t.section === ADMIN ? "" : project;
@@ -1416,8 +1430,18 @@ document.addEventListener("submit", (e) => {
       if (!done) t.fields.done = "";
       t.done = done;
       t.notes = String(fd.get("notes") || "").split("\n").map((s) => s.trimEnd()).filter(Boolean);
+      if (wantsFollow) {
+        // The closed to-do and its follow-up name each other, so either one leads back to the other.
+        t.fields.followup = followup;
+        const src = (t.tail.match(/\(from (\[[^\]]+\]\([^)\s]+\))/) || [])[1];
+        const next = { type: "task", done: false, title: followup, fields: { due: String(fd.get("followDue") || ""), project: t.fields.project || "", priority: t.fields.priority || "", created: nowIso(), after: t.title },
+          tail: src ? `(from ${src}, added ${todayStr()})` : `(added ${todayStr()})`, notes: [], section: null };
+        moveTask(list, t);
+        insertTop(list, wasAdmin && !next.fields.project ? ADMIN : sectionFor(next), next);
+        return;
+      }
       moveTask(list, t);
-    }, "edit: " + short(String(fd.get("title"))), "Saved");
+    }, wantsFollow ? "done with follow-up: " + short(String(fd.get("title"))) : "edit: " + short(String(fd.get("title"))), wantsFollow ? "Done. Follow-up added." : "Saved");
   } else if (f.id === "fileEditor") {
     e.preventDefault();
     const path = f.dataset.path, text = $("rawText").value.replace(/\r\n/g, "\n");
