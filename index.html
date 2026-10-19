@@ -4,24 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kyle's To-Do Desk</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="favicon.svg">
+<meta name="theme-color" content="#1F5FBF">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<script src="vendor/marked.min.js"></script>
+<script src="vendor/purify.min.js"></script>
 <style>
-/* Layout: a project rail on the left, the working list on the right; stacks to one column on phones. */
+/* Layout: header and tab bar on top; each tab is its own page. The To-dos tab keeps a rail on the left. Everything stacks on phones. */
 :root {
   --bg: #F3F5F7; --panel: #FFFFFF; --ink: #16202A; --muted: #5B6875; --faint: #8A96A2; --line: #DCE2E8; --hover: #EAEEF2;
   --accent: #1F5FBF; --accent-ink: #FFFFFF; --accent-soft: #E3ECF9;
-  --late: #C2362B; --late-soft: #FBE7E4; --soon: #A86500; --soon-soft: #FBF0DC; --ok: #2E7D4F;
+  --late: #C2362B; --late-soft: #FBE7E4; --soon: #A86500; --soon-soft: #FBF0DC; --ok: #2E7D4F; --ok-soft: #E2F2E8;
   --p1: #1F5FBF; --p2: #B5487A; --p3: #2E7D4F; --p4: #A86500; --p5: #6B4FC4; --p6: #2A8A93; --p7: #6B7785;
   --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --body: "Instrument Sans", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
-  --mono: var(--body);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root {
   --bg: #11171D; --panel: #18212A; --ink: #E6ECF1; --muted: #A0ADB9; --faint: #74818D; --line: #2A3540; --hover: #212C36;
   --accent: #6FA2F0; --accent-ink: #0B1420; --accent-soft: #1C2D44;
-  --late: #F07A6E; --late-soft: #3A1E1C; --soon: #E2A94A; --soon-soft: #352915; --ok: #6CC290;
+  --late: #F07A6E; --late-soft: #3A1E1C; --soon: #E2A94A; --soon-soft: #352915; --ok: #6CC290; --ok-soft: #17301F;
   --p1: #6FA2F0; --p2: #E383AE; --p3: #6CC290; --p4: #E2A94A; --p5: #A893F0; --p6: #5CC3CB; --p7: #9AA6B2;
   color-scheme: dark;
 } }
@@ -31,16 +35,25 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 [hidden] { display: none !important; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
+a { color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.wrap { max-width: 1120px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 22px; }
+.wrap { max-width: 1160px; margin: 0 auto; padding-block: 24px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 
 header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
-header.top h1 { font-family: var(--display); font-weight: 700; font-size: 30px; letter-spacing: -0.01em; margin: 0; }
+header.top h1 { font-family: var(--display); font-weight: 700; font-size: 30px; letter-spacing: -0.01em; margin: 0; display: flex; align-items: center; gap: 10px; }
+header.top h1 img { width: 30px; height: 30px; }
 .topright { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .date, .sync { font-size: 14px; color: var(--muted); }
 .sync.busy { color: var(--soon); }
 .sync.err { color: var(--late); }
-.linkbtn { border: 0; background: none; color: var(--accent); padding: 0; font-size: 13.5px; font-weight: 600; }
+.linkbtn { border: 0; background: none; color: var(--accent); padding: 0; font-size: 14px; font-weight: 600; }
+
+.navbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+nav.tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1 1 520px; min-width: 0; padding-bottom: 2px; }
+nav.tabs a { text-decoration: none; color: var(--muted); padding: 7px 10px; border-radius: 8px; white-space: nowrap; font-weight: 500; }
+nav.tabs a:hover { background: var(--hover); color: var(--ink); }
+nav.tabs a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.gsearch { flex: 0 1 180px; min-width: 0; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 10px; }
 
 .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; text-align: left; display: grid; gap: 2px; }
@@ -50,13 +63,14 @@ header.top h1 { font-family: var(--display); font-weight: 700; font-size: 30px; 
 .stat.late .n { color: var(--late); }
 .stat.soon .n { color: var(--soon); }
 
-.add, .settings { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
-.add .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.add input[type=text] { flex: 1 1 260px; min-width: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 10px 12px; }
-.add select, .add input[type=date], .field select, .field input, .field textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 10px; min-width: 0; }
-.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 8px 14px; font-weight: 600; }
+.panel, .add, .settings { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.add .row, .formrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.add input[type=text], .formrow input[type=text] { flex: 1 1 260px; min-width: 0; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+.add select, .add input[type=date], .formrow select, .formrow input, .field select, .field input, .field textarea { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 8px 14px; font-weight: 600; text-decoration: none; color: var(--ink); display: inline-block; }
 .btn:hover { background: var(--hover); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.small { padding: 4px 10px; font-size: 13.5px; }
 .btn.danger { color: var(--late); }
 .btn.danger.armed { background: var(--late); color: var(--panel); border-color: var(--late); }
 .hint { font-size: 12.5px; color: var(--faint); }
@@ -64,9 +78,39 @@ header.top h1 { font-family: var(--display); font-weight: 700; font-size: 30px; 
 .settings h2 { font-family: var(--display); font-size: 20px; margin: 0; }
 .settings p { margin: 0; color: var(--muted); max-width: 65ch; }
 .settings .fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.settings .result { font-size: 14px; }
-.settings .result.ok { color: var(--ok); }
-.settings .result.bad { color: var(--late); }
+.result.ok { color: var(--ok); }
+.result.bad { color: var(--late); }
+
+h2.pt { font-family: var(--display); font-size: 24px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
+h3.st { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; display: flex; gap: 8px; align-items: center; }
+h3.st .ct { color: var(--faint); font-variant-numeric: tabular-nums; }
+.pagehead { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.pagehead .sub { color: var(--muted); }
+.back { font-size: 14px; text-decoration: none; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.stack { display: grid; gap: 18px; min-width: 0; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 6px; text-decoration: none; color: var(--ink); align-content: start; min-width: 0; }
+a.card:hover { border-color: var(--accent); }
+.card .t { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.card .d { color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+.rows { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.rows > li { border-top: 1px solid var(--line); padding: 11px 14px; display: grid; gap: 3px; min-width: 0; }
+.rows > li:first-child { border-top: 0; }
+.rows a.rt { font-weight: 600; text-decoration: none; color: var(--ink); }
+.rows a.rt:hover { color: var(--accent); }
+.rows .rd { color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+.rows .rm { color: var(--faint); font-size: 12.5px; }
+.rows .dayrow { padding-block: 6px; background: var(--bg); color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.ev { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; }
+.ev .tm { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; }
+.bar { height: 6px; background: var(--hover); border-radius: 999px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--ok); }
+mark { background: var(--soon-soft); color: inherit; border-radius: 3px; padding: 0 2px; }
+details.sop { border-top: 1px solid var(--line); padding: 10px 14px; }
+details.sop:first-child { border-top: 0; }
+details.sop summary { cursor: pointer; font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+details.sop .md { margin-top: 8px; }
 
 .main { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 22px; align-items: start; }
 aside.rail { display: grid; gap: 18px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
@@ -75,8 +119,8 @@ aside.rail { display: grid; gap: 18px; position: sticky; top: calc(env(safe-area
 .nav { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; padding: 7px 10px; border-radius: 8px; text-align: left; }
 .nav:hover { background: var(--hover); }
 .nav[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-.nav .ct { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
-.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--p7); }
+.nav .ct { margin-left: auto; font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--p7); display: inline-block; }
 .newproj { display: flex; gap: 6px; padding: 4px 0 0 4px; }
 .newproj input { flex: 1; min-width: 0; border: 1px dashed var(--line); background: transparent; border-radius: 8px; padding: 6px 10px; font-size: 14px; }
 
@@ -84,34 +128,38 @@ section.list { display: grid; gap: 18px; min-width: 0; }
 .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
 .toolbar h2 { font-family: var(--display); font-size: 21px; font-weight: 700; margin: 0; }
 .toolbar input { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 10px; width: 220px; max-width: 100%; }
-.group { display: grid; gap: 6px; }
+.group { display: grid; gap: 6px; min-width: 0; }
 .group h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; display: flex; gap: 8px; align-items: center; }
-.group h3 .ct { font-family: var(--mono); color: var(--faint); }
+.group h3 .ct { color: var(--faint); font-variant-numeric: tabular-nums; }
 .group.late h3 { color: var(--late); }
 ul.tasks { list-style: none; margin: 0; padding: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 li.task { border-top: 1px solid var(--line); }
 li.task:first-child { border-top: 0; }
 .trow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 11px 12px; }
 .trow:hover { background: var(--hover); }
-.check { width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; border: 2px solid var(--faint); background: transparent; padding: 0; display: grid; place-items: center; }
+.check { width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; border: 2px solid var(--faint); background: transparent; padding: 0; display: grid; place-items: center; flex: none; }
 .check:hover { border-color: var(--ok); }
 .task.p-high .check { border-color: var(--late); }
-.task.done .check { background: var(--ok); border-color: var(--ok); }
-.task.done .check::after { content: ""; width: 5px; height: 9px; border: solid var(--panel); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
+.task.done .check, .check.on { background: var(--ok); border-color: var(--ok); }
+.task.done .check::after, .check.on::after { content: ""; width: 5px; height: 9px; border: solid var(--panel); border-width: 0 2px 2px 0; transform: translateY(-1px) rotate(45deg); }
 .tbody { border: 0; background: transparent; padding: 0; text-align: left; min-width: 0; display: grid; gap: 4px; }
 .ttitle { font-weight: 500; overflow-wrap: anywhere; }
-.task.done .ttitle { text-decoration: line-through; color: var(--faint); }
+.task.done .ttitle, .lrow.done .ttitle { text-decoration: line-through; color: var(--faint); }
 .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); }
-.chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 8px; background: var(--bg); border: 1px solid var(--line); white-space: nowrap; }
+.chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 8px; background: var(--bg); border: 1px solid var(--line); white-space: nowrap; text-decoration: none; color: var(--muted); font-size: 12.5px; font-weight: 500; }
+a.chip:hover { border-color: var(--accent); color: var(--accent); }
 .chip.due { font-variant-numeric: tabular-nums; }
-.chip.due.late { color: var(--late); background: var(--late-soft); border-color: transparent; font-weight: 500; }
-.chip.due.soon { color: var(--soon); background: var(--soon-soft); border-color: transparent; }
+.chip.late { color: var(--late); background: var(--late-soft); border-color: transparent; }
+.chip.soon { color: var(--soon); background: var(--soon-soft); border-color: transparent; }
+.chip.okc { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
 .chip.wait { color: var(--p5); }
 .chip.doing { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
 .chip.pri { color: var(--late); border-color: transparent; background: var(--late-soft); font-weight: 600; }
 .notes-flag { color: var(--faint); }
 .star { border: 0; background: transparent; padding: 2px 4px; font-size: 17px; line-height: 1; color: var(--line); }
 .star:hover, .star[aria-pressed="true"] { color: var(--soon); }
+.lrow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 11px 12px; border-top: 1px solid var(--line); }
+.lrow:first-child { border-top: 0; }
 
 .edit { padding: 4px 12px 14px 44px; display: grid; gap: 10px; }
 .fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
@@ -119,15 +167,37 @@ li.task:first-child { border-top: 0; }
 .field.wide { grid-column: 1 / -1; }
 .field input, .field select, .field textarea { font-size: 14px; color: var(--ink); width: 100%; }
 .field textarea { min-height: 140px; resize: vertical; }
-.edit .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.edit .actions .spacer { flex: 1; }
-.source a { color: var(--accent); }
+textarea.raw { width: 100%; min-height: 420px; border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.5; resize: vertical; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.actions .spacer { flex: 1; }
 
-.empty { background: var(--panel); border: 1px dashed var(--line); border-radius: 12px; padding: 22px; color: var(--muted); text-align: center; }
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; max-width: calc(100% - 32px); }
+.md { overflow-wrap: anywhere; max-width: 75ch; }
+.md > :first-child { margin-top: 0; }
+.md h1 { font-family: var(--display); font-size: 24px; margin: 0 0 8px; }
+.md h2 { font-family: var(--display); font-size: 18px; margin: 18px 0 6px; }
+.md h3 { font-size: 15px; margin: 14px 0 4px; }
+.md p, .md ul, .md ol { margin: 6px 0; }
+.md ul, .md ol { padding-left: 22px; }
+.md code { background: var(--hover); border-radius: 4px; padding: 0 4px; font-size: 13.5px; }
+.md table { border-collapse: collapse; display: block; overflow-x: auto; }
+.md td, .md th { border: 1px solid var(--line); padding: 4px 8px; }
+.md details { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.md details summary { cursor: pointer; font-weight: 600; color: var(--muted); }
+.md hr { border: 0; border-top: 1px solid var(--line); }
 
-@media (max-width: 820px) {
-  .main { grid-template-columns: minmax(0, 1fr); }
+.tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+table.data { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.data th, table.data td { padding: 8px 12px; border-top: 1px solid var(--line); text-align: left; white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.data th { border-top: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+table.data td.num, table.data th.num { text-align: right; }
+.spark { color: var(--accent); }
+.trend .v { font-family: var(--display); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.empty { background: var(--panel); border: 1px dashed var(--line); border-radius: 12px; padding: 20px; color: var(--muted); text-align: center; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; max-width: calc(100% - 32px); z-index: 20; }
+
+@media (max-width: 860px) {
+  .main, .cols { grid-template-columns: minmax(0, 1fr); }
   aside.rail { position: static; }
   .navlist.projects, .navlist.views { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
   .navlist .nav { width: auto; white-space: nowrap; }
@@ -137,14 +207,17 @@ li.task:first-child { border-top: 0; }
   .stats .stat:nth-child(n+4) { display: none; }
   .fields, .settings .fields { grid-template-columns: minmax(0, 1fr); }
   .edit { padding-left: 12px; }
+  .gsearch { flex: 1 1 100%; }
+  .ev { grid-template-columns: 70px minmax(0, 1fr); }
+  .ev > :last-child { grid-column: 2; justify-self: start; }
 }
-@media (prefers-reduced-motion: no-preference) { .trow, .nav, .stat { transition: background-color .12s, border-color .12s; } }
+@media (prefers-reduced-motion: no-preference) { .trow, .nav, .stat, .card { transition: background-color .12s, border-color .12s; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <h1>Kyle's To-Do Desk</h1>
+    <h1><img src="favicon.svg" alt="">Kyle's To-Do Desk</h1>
     <div class="topright">
       <span class="sync" id="sync"></span>
       <span class="date" id="today"></span>
@@ -153,16 +226,16 @@ li.task:first-child { border-top: 0; }
   </header>
 
   <form class="settings" id="settings" hidden autocomplete="off">
-    <h2>Connect to your to-do list</h2>
+    <h2>Connect to your workspace</h2>
     <p>Paste your GitHub key below. It stays in this browser only. Leave the other boxes as they are.</p>
     <div class="fields">
       <label class="field wide">Key<input type="password" id="sKey" placeholder="github_pat_…"></label>
       <label class="field">Owner<input id="sOwner"></label>
       <label class="field">Repository<input id="sRepo"></label>
       <label class="field">Branch<input id="sBranch"></label>
-      <label class="field">File<input id="sPath"></label>
+      <label class="field">To-do file<input id="sPath"></label>
     </div>
-    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <div class="actions">
       <button class="btn" type="button" id="sTest">Test connection</button>
       <button class="btn primary" type="submit">Save</button>
       <button class="btn" type="button" id="sClose">Close</button>
@@ -170,39 +243,22 @@ li.task:first-child { border-top: 0; }
     </div>
   </form>
 
-  <div class="stats" id="stats"></div>
-
-  <form class="add" id="addForm" autocomplete="off">
-    <div class="row">
-      <input type="text" id="addTitle" placeholder="Add a to-do… e.g. Send Leads Team the new script #leads !high @Amy" aria-label="New to-do">
-      <select id="addProject" aria-label="Project"></select>
-      <input type="date" id="addDue" aria-label="Due date">
-      <select id="addPri" aria-label="Priority"><option value="">Normal</option><option value="high">High</option><option value="low">Low</option></select>
-      <button class="btn primary" type="submit">Add</button>
-    </div>
-    <div class="hint">Shortcuts in the text: <code>#project</code> picks a project, <code>!high</code> or <code>!low</code> sets priority, <code>@name</code> marks it as waiting on that person.</div>
-  </form>
-
-  <div class="main">
-    <aside class="rail">
-      <div><h2>Views</h2><div class="navlist views" id="views"></div></div>
-      <div>
-        <h2>Projects</h2>
-        <div class="navlist projects" id="projects"></div>
-        <form class="newproj" id="newProj"><input type="text" id="newProjName" placeholder="+ New project" aria-label="New project name"></form>
-      </div>
-    </aside>
-    <section class="list" id="list"></section>
+  <div class="navbar">
+    <nav class="tabs" id="tabs"></nav>
+    <input type="search" class="gsearch" id="gsearch" placeholder="Search everything" aria-label="Search everything">
   </div>
+
+  <main id="page"></main>
 </div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
-// ---------- todos.md format ----------
+// ===================== todos.md format =====================
 // Each to-do is one Markdown line, with optional Dataview-style fields and indented note lines:
 //   - [ ] Title [due:: 2026-10-20] [project:: Leads Team] [priority:: high] [waiting:: Amy] [status:: doing] [star:: yes] [created:: 2026-10-19T14:45:00Z] (from [Source](path), added 2026-10-19)
 //       A note line
 // Sections are "## Open", "## Administrative" and "## Done". A "Projects: A · B · C" line lists the projects.
+// Launch checklists in launches/*.md use the same line format.
 const FIELD_ORDER = ["due", "project", "priority", "waiting", "status", "star", "created", "done"];
 const ADMIN = "Administrative";
 
@@ -237,9 +293,7 @@ function taskLines(t) {
   if (t.tail) s += " " + t.tail;
   return [s].concat(t.notes.filter((n) => n.trim()).map((n) => "    " + n));
 }
-function serialize(entries) {
-  return entries.flatMap((e) => (e.type === "task" ? taskLines(e) : [e.text])).join("\n");
-}
+function serialize(entries) { return entries.flatMap((e) => (e.type === "task" ? taskLines(e) : [e.text])).join("\n"); }
 function keyOf(t) { return taskLines(t)[0]; }
 function projectsLine(entries) { return entries.find((e) => e.type === "raw" && /^Projects:/.test(e.text)); }
 function listedProjects(entries) {
@@ -273,22 +327,74 @@ function moveTask(entries, t) {
   insertTop(entries, want, t);
 }
 
-// ---------- settings and GitHub ----------
+// ===================== other file formats =====================
+function frontmatter(text) {
+  const m = (text || "").match(/^---\n([\s\S]*?)\n---\n?/);
+  if (!m) return { meta: {}, body: text || "" };
+  const meta = {};
+  for (const line of m[1].split("\n")) {
+    const k = line.match(/^([\w-]+):\s*(.*)$/);
+    if (!k) continue;
+    let v = k[2].trim();
+    if (/^\[.*\]$/.test(v)) v = v.slice(1, -1).split(",").map((s) => s.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+    else v = v.replace(/^["']|["']$/g, "");
+    meta[k[1]] = v;
+  }
+  return { meta, body: text.slice(m[0].length) };
+}
+function setFrontmatter(text, key, value) {
+  const m = text.match(/^---\n([\s\S]*?)\n---\n?/);
+  if (!m) return `---\n${key}: ${value}\n---\n\n` + text;
+  const lines = m[1].split("\n");
+  const i = lines.findIndex((l) => l.startsWith(key + ":"));
+  if (i >= 0) lines[i] = `${key}: ${value}`; else lines.push(`${key}: ${value}`);
+  return "---\n" + lines.join("\n") + "\n---\n" + text.slice(m[0].length);
+}
+// Lines of a "## Heading" or "### Heading" section, up to the next heading of the same or higher level.
+function sectionLines(text, name) {
+  const lines = text.split("\n");
+  const i = lines.findIndex((l) => new RegExp("^#{2,3}\\s+" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*$", "i").test(l));
+  if (i < 0) return [];
+  const level = lines[i].match(/^#+/)[0].length;
+  const out = [];
+  for (let j = i + 1; j < lines.length; j++) { const h = lines[j].match(/^(#+)\s/); if (h && h[1].length <= level) break; out.push(lines[j]); }
+  return out;
+}
+const bullets = (lines) => lines.filter((l) => /^\s*- /.test(l) && !/^\s*- \[[ xX]\]/.test(l)).map((l) => l.replace(/^\s*- /, "").trim());
+// sops.md: "## Project" sections, each SOP a "### Title" followed by a line of [owner:: ] [project:: ] [status:: ] fields.
+function parseSops(text) {
+  const out = []; let cur = null;
+  for (const line of (text || "").split("\n")) {
+    const h = line.match(/^###\s+(.+?)\s*$/);
+    if (h) { cur = { title: h[1], fields: {}, lines: [] }; out.push(cur); continue; }
+    if (/^##\s/.test(line)) { cur = null; continue; }
+    if (!cur) continue;
+    if (!cur.lines.length && !Object.keys(cur.fields).length && /^\s*\[[a-z_]+:: /i.test(line)) { line.replace(/\[([A-Za-z_]+):: ([^\]]*)\]/g, (m, k, v) => { cur.fields[k.toLowerCase()] = v.trim(); }); continue; }
+    cur.lines.push(line);
+  }
+  return out.map((s) => ({ title: s.title, owner: s.fields.owner || "", project: s.fields.project || "", status: s.fields.status || "active", body: s.lines.join("\n").trim() }));
+}
+function parseCsv(t) {
+  const rows = []; let row = [], f = "", q = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true; else if (c === ",") { row.push(f); f = ""; } else if (c === "\n") { row.push(f); rows.push(row); row = []; f = ""; } else if (c !== "\r") f += c;
+  }
+  if (f || row.length) { row.push(f); rows.push(row); }
+  return rows.filter((r) => r.some((x) => x !== ""));
+}
+const csvCell = (v) => (/[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v);
+
+// ===================== settings and GitHub =====================
 const DEFAULTS = { owner: "kylewrites33-cloud", repo: "bpf-data", branch: "main", path: "todos.md" };
-function loadSettings() {
-  let s = {};
-  try { s = JSON.parse(localStorage.getItem("todo-desk-settings") || "{}"); } catch (e) {}
-  return Object.assign({}, DEFAULTS, s);
-}
+function loadSettings() { let s = {}; try { s = JSON.parse(localStorage.getItem("todo-desk-settings") || "{}"); } catch (e) {} return Object.assign({}, DEFAULTS, s); }
 let settings = loadSettings();
-function apiUrl(s) {
-  return `https://api.github.com/repos/${encodeURIComponent(s.owner)}/${encodeURIComponent(s.repo)}/contents/${s.path.split("/").map(encodeURIComponent).join("/")}`;
-}
+const enc = (p) => p.split("/").map(encodeURIComponent).join("/");
 function b64ToText(b64) { const bin = atob(b64.replace(/\s/g, "")); return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))); }
 function textToB64(text) { const bytes = new TextEncoder().encode(text); let bin = ""; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(bin); }
-async function gh(s, method, body) {
-  const url = apiUrl(s) + (method === "GET" ? `?ref=${encodeURIComponent(s.branch)}&t=${Date.now()}` : "");
-  const r = await fetch(url, {
+async function api(s, path, method = "GET", body) {
+  const r = await fetch("https://api.github.com/repos/" + encodeURIComponent(s.owner) + "/" + encodeURIComponent(s.repo) + path, {
     method, cache: "no-store",
     headers: { Authorization: `Bearer ${s.key}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", ...(body ? { "Content-Type": "application/json" } : {}) },
     body: body ? JSON.stringify(body) : undefined,
@@ -296,30 +402,127 @@ async function gh(s, method, body) {
   if (!r.ok) { const e = new Error("GitHub " + r.status); e.status = r.status; throw e; }
   return r.json();
 }
-async function fetchFile(s = settings) { const j = await gh(s, "GET"); return { text: b64ToText(j.content), sha: j.sha }; }
+async function getFile(path, s = settings) {
+  try { const j = await api(s, `/contents/${enc(path)}?ref=${encodeURIComponent(s.branch)}&t=${Date.now()}`); return { text: b64ToText(j.content), sha: j.sha }; }
+  catch (e) { if (e.status === 404) return { text: null, sha: null }; throw e; }
+}
 function explain(e) {
   if (e.status === 401) return "GitHub didn't accept the key. Make a new key and paste it in Settings.";
   if (e.status === 403) return "The key can't change this repository. Make a new key with Contents set to Read and write.";
-  if (e.status === 404) return "Couldn't find the file. Check that the key includes the bpf-data repository.";
-  if (e.status === 409) return "The list changed somewhere else at the same moment. Try again.";
+  if (e.status === 404) return "Couldn't find the repository. Check that the key includes bpf-data.";
+  if (e.status === 409) return "That file changed somewhere else at the same moment. Try again.";
   if (!e.status) return "Couldn't reach GitHub. Check your connection.";
   return "GitHub returned an error (" + e.status + "). Try again.";
 }
 
-// ---------- app state ----------
-const VIEWS = [
-  { id: "today", label: "Today" }, { id: "upcoming", label: "Upcoming" }, { id: "projects", label: "By project" },
-  { id: "waiting", label: "Waiting on others" }, { id: "all", label: "All open" }, { id: "done", label: "Done" },
-];
-const PRI_RANK = { high: 0, "": 1, low: 2 };
-let entries = [], sha = null, loaded = false;
-let view = "today", projectFilter = null, q = "", openKey = null, armedDelete = null;
-try { const v = localStorage.getItem("todo-desk-view"); if (v && VIEWS.some((x) => x.id === v)) view = v; } catch (e) {}
+// ===================== loading the workspace =====================
+// Everything comes from git: the repo tree is listed, then each wanted file is read once per version (cached by its sha).
+const WANT = (p) => p === settings.path || p === "decisions.md" || p === "sops.md" || p === "calendar/upcoming.json" || p === "leads/weekly.csv" ||
+  /^(meetings|slack|projects|people|launches|reels|ai-bryan)\/[^/]+\.md$/.test(p);
+let files = {}, shas = {}, loaded = false, entries = [];
+function cacheGet(sha) { try { return localStorage.getItem("blob:" + sha); } catch (e) { return null; } }
+function cachePut(sha, text) { try { if (text.length < 400000) localStorage.setItem("blob:" + sha, text); } catch (e) {} }
+async function loadAll() {
+  const t = await api(settings, `/git/trees/${encodeURIComponent(settings.branch)}?recursive=1&t=${Date.now()}`);
+  const want = t.tree.filter((x) => x.type === "blob" && WANT(x.path));
+  const next = {}, nextSha = {};
+  const todo = want.slice();
+  async function worker() {
+    while (todo.length) {
+      const x = todo.shift();
+      let text = shas[x.path] === x.sha ? files[x.path] : cacheGet(x.sha);
+      if (text == null) { const b = await api(settings, `/git/blobs/${x.sha}`); text = b64ToText(b.content); cachePut(x.sha, text); }
+      next[x.path] = text; nextSha[x.path] = x.sha;
+    }
+  }
+  await Promise.all(Array.from({ length: 6 }, worker));
+  files = next; shas = nextSha;
+  entries = parseDoc(files[settings.path] || "");
+  derive();
+}
 
+// ===================== derived data =====================
+let D = { projects: [], people: [], docs: [], decisions: [], launches: [], reels: [], sops: [], events: [], leads: { head: [], rows: [] } };
+const slugify = (s) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const fileSlug = (p) => p.split("/").pop().replace(/\.md$/, "");
+function derive() {
+  // Projects: brief files plus any project named in todos.md.
+  const projFiles = Object.keys(files).filter((p) => p.startsWith("projects/")).map((p) => { const { meta, body } = frontmatter(files[p]); return { path: p, slug: fileSlug(p), name: meta.name || fileSlug(p), meta, body }; });
+  const names = listedProjects(entries);
+  for (const e of entries) if (e.type === "task" && e.fields.project && !names.includes(e.fields.project)) names.push(e.fields.project);
+  for (const p of projFiles) if (!names.includes(p.name)) names.push(p.name);
+  const ordered = names.filter((n) => n !== ADMIN).concat([ADMIN]);
+  D.projects = ordered.map((name, i) => {
+    const color = name === ADMIN ? "p7" : "p" + ((i % 6) + 1);
+    const f = projFiles.find((p) => p.name === name);
+    return f ? { ...f, color } : { path: null, slug: slugify(name), name, meta: {}, body: "", color };
+  });
+  D.people = Object.keys(files).filter((p) => p.startsWith("people/")).map((p) => {
+    const { meta, body } = frontmatter(files[p]); const name = meta.name || fileSlug(p);
+    const aliases = [name].concat(Array.isArray(meta.aliases) ? meta.aliases : []).map((a) => a.toLowerCase());
+    return { path: p, slug: fileSlug(p), name, meta, body, aliases };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+  // Meetings and Slack logs.
+  D.docs = Object.keys(files).filter((p) => /^(meetings|slack)\//.test(p)).map((p) => {
+    const text = files[p]; const { meta, body } = frontmatter(text);
+    const kind = p.startsWith("meetings/") ? "meeting" : "slack";
+    const date = String(meta.date || meta.start || fileSlug(p)).slice(0, 10);
+    const h1 = (body.match(/^#\s+(.+)$/m) || [])[1];
+    const title = kind === "meeting" ? String(meta.title || h1 || fileSlug(p)).replace(/\s{2,}with\s+.*$/, "").replace(/\s{2,}/g, " ").trim() : (h1 || "#" + (meta.channel || fileSlug(p)));
+    const summary = sectionLines(body, "Summary").join(" ").replace(/\s+/g, " ").trim();
+    const nextSteps = bullets(sectionLines(body, "Other people's next steps")).map((l) => { const m = l.match(/^([^:]{2,40}):\s*(.+)$/); return m ? { who: m[1].trim(), what: m[2].trim() } : { who: "", what: l }; });
+    const decisions = bullets(sectionLines(body, "Decisions Made"));
+    const attendees = Array.isArray(meta.attendees) ? meta.attendees.map((a) => a.replace(/\s*\(.*\)\s*/, "").trim()) : [];
+    return { path: p, kind, date, when: meta.local_time || "", title, summary, nextSteps, decisions, attendees, text, lower: text.toLowerCase() };
+  }).sort((a, b) => b.date.localeCompare(a.date) || b.path.localeCompare(a.path));
+  // Decisions: from meetings' "Decisions Made", plus decisions.md.
+  D.decisions = [];
+  for (const d of D.docs) for (const text of d.decisions) D.decisions.push({ date: d.date, text, project: guessProject(text), source: { label: d.title + ", " + fmtDay(d.date), path: d.path } });
+  for (const line of (files["decisions.md"] || "").split("\n")) {
+    const m = line.match(/^- (\d{4}-\d{2}-\d{2}) · (.+)$/); if (!m) continue;
+    const t = parseTask(false, m[2], null);
+    const src = t.tail.match(/\[([^\]]+)\]\(([^)\s]+)\)/);
+    D.decisions.push({ date: m[1], text: t.title, project: t.fields.project || guessProject(t.title), source: src ? { label: src[1], path: resolvePath("decisions.md", src[2]) } : null });
+  }
+  D.decisions.sort((a, b) => b.date.localeCompare(a.date));
+  // Launches.
+  D.launches = Object.keys(files).filter((p) => p.startsWith("launches/")).map((p) => {
+    const { meta, body } = frontmatter(files[p]); const items = parseDoc(files[p]).filter((e) => e.type === "task");
+    return { path: p, slug: fileSlug(p), name: meta.name || fileSlug(p), date: meta.date || "", project: meta.project || "", body, items };
+  }).sort((a, b) => (a.date || "9").localeCompare(b.date || "9"));
+  // Reels.
+  D.reels = Object.keys(files).filter((p) => p.startsWith("reels/") && /^reels\/\d{4}-\d{2}-\d{2}/.test(p)).map((p) => {
+    const { meta, body } = frontmatter(files[p]); const name = fileSlug(p);
+    const date = (name.match(/^\d{4}-\d{2}-\d{2}/) || [""])[0] || String(meta.created_at || "").slice(0, 10);
+    const hookSec = sectionLines(body, "Hook").map((l) => l.trim()).filter(Boolean).join(" ");
+    const first = hookSec || body.split("\n").map((l) => l.replace(/^#+\s*|^\*\*|\*\*$|^Hook:\s*/gi, "").trim()).find(Boolean) || "";
+    return { path: p, name: meta.hook || name.replace(/^\d{4}-\d{2}-\d{2}\s*/, ""), date, status: meta.status || "written", hook: first, meta };
+  }).sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+  D.sops = parseSops(files["sops.md"]);
+  // Calendar.
+  try { const c = JSON.parse(files["calendar/upcoming.json"] || "{}"); D.events = (c.events || []).slice().sort((a, b) => a.start.localeCompare(b.start)); D.calendarUpdated = c.updated_at || ""; } catch (e) { D.events = []; }
+  // Leads numbers.
+  const rows = parseCsv(files["leads/weekly.csv"] || "");
+  D.leads = { head: rows[0] || [], rows: rows.slice(1).sort((a, b) => (b[0] || "").localeCompare(a[0] || "")) };
+}
+function guessProject(text) {
+  const l = text.toLowerCase();
+  const hit = D.projects.find((p) => Array.isArray(p.meta.keywords) && p.meta.keywords.some((k) => l.includes(k.toLowerCase())));
+  return hit ? hit.name : "";
+}
+function resolvePath(fromPath, href) {
+  const base = fromPath.split("/").slice(0, -1);
+  let rel = href.split("#")[0];
+  try { rel = decodeURIComponent(rel); } catch (e) {}
+  for (const part of rel.split("/")) { if (part === "..") base.pop(); else if (part && part !== ".") base.push(part); }
+  return base.join("/");
+}
+
+// ===================== helpers =====================
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 function ymd(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
-function parseYmd(s) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+function parseYmd(s) { const [y, m, d] = s.slice(0, 10).split("-").map(Number); return new Date(y, m - 1, d); }
 const todayStr = () => ymd(new Date());
 function daysFromToday(s) { return Math.round((parseYmd(s) - parseYmd(todayStr())) / 86400000); }
 function fmtDue(s) {
@@ -329,8 +532,67 @@ function fmtDue(s) {
   if (n > 1 && n < 7) return d.toLocaleDateString(undefined, { weekday: "short" });
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
+const fmtDay = (s) => parseYmd(s).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+const TZ = "America/New_York";
+const etDay = (iso) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
+const etTime = (iso) => new Date(iso).toLocaleTimeString("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" });
+const etDayLabel = (iso) => new Date(iso).toLocaleDateString("en-US", { timeZone: TZ, weekday: "long", month: "short", day: "numeric" });
+const short = (s, n = 60) => (s.length > n ? s.slice(0, n - 3) + "…" : s);
+const projByName = (name) => D.projects.find((p) => p.name === name);
+const projColor = (name) => "var(--" + (projByName(name)?.color || "p7") + ")";
+function personFor(name) {
+  const l = (name || "").toLowerCase().trim(); if (!l) return null;
+  return D.people.find((p) => p.aliases.includes(l)) || D.people.find((p) => { const f = l.split(" ")[0]; return f.length > 2 && p.aliases.some((a) => a.split(" ")[0] === f); }) || null;
+}
+const docLink = (path) => "#doc/" + encodeURIComponent(path);
+function projectChip(name) {
+  if (!name) return "";
+  const p = projByName(name);
+  return `<a class="chip" href="#projects/${esc(p ? p.slug : slugify(name))}"><span class="dot" style="background:${projColor(name)}"></span>${esc(name)}</a>`;
+}
+function personChip(name) {
+  const p = personFor(name);
+  return p ? `<a class="chip" href="#people/${esc(p.slug)}">${esc(p.name)}</a>` : `<span class="chip">${esc(name)}</span>`;
+}
+function renderMd(text, fromPath) {
+  const html = window.marked ? marked.parse(text, { gfm: true }) : "<pre style=\"white-space:pre-wrap\">" + esc(text) + "</pre>";
+  const box = document.createElement("div");
+  box.innerHTML = window.DOMPurify ? DOMPurify.sanitize(html) : (window.marked ? "<pre style=\"white-space:pre-wrap\">" + esc(text) + "</pre>" : html);
+  for (const a of box.querySelectorAll("a[href]")) {
+    const href = a.getAttribute("href");
+    if (/^https?:/.test(href)) { a.target = "_blank"; a.rel = "noopener"; continue; }
+    if (href.startsWith("#") || /^[a-z]+:/i.test(href)) continue;
+    const p = resolvePath(fromPath || "", href);
+    if (files[p] != null) a.setAttribute("href", docLink(p));
+    else { a.setAttribute("href", `https://github.com/${settings.owner}/${settings.repo}/blob/${settings.branch}/${enc(p)}`); a.target = "_blank"; a.rel = "noopener"; }
+  }
+  for (const h of box.querySelectorAll("h2")) {
+    if (!/^(transcript|messages)$/i.test(h.textContent.trim())) continue;
+    const det = document.createElement("details"); const sum = document.createElement("summary"); sum.textContent = h.textContent; det.appendChild(sum);
+    let n = h.nextSibling; while (n) { const nx = n.nextSibling; det.appendChild(n); n = nx; }
+    h.replaceWith(det);
+  }
+  return box.innerHTML;
+}
+function snippet(text, needles) {
+  const l = text.toLowerCase();
+  let i = -1, len = 0;
+  for (const n of needles) { const j = l.indexOf(n.toLowerCase()); if (j >= 0 && (i < 0 || j < i)) { i = j; len = n.length; } }
+  if (i < 0) return "";
+  const s = Math.max(0, i - 70), e = Math.min(text.length, i + len + 110);
+  const pre = text.slice(s, i).replace(/\s+/g, " "), hit = text.slice(i, i + len), post = text.slice(i + len, e).replace(/\s+/g, " ");
+  return (s > 0 ? "…" : "") + esc(pre) + "<mark>" + esc(hit) + "</mark>" + esc(post) + (e < text.length ? "…" : "");
+}
 
-// A view model of each to-do, built from the parsed file.
+// ===================== to-dos =====================
+const VIEWS = [
+  { id: "today", label: "Today" }, { id: "upcoming", label: "Upcoming" }, { id: "projects", label: "By project" },
+  { id: "waiting", label: "Waiting on others" }, { id: "all", label: "All open" }, { id: "done", label: "Done" },
+];
+const PRI_RANK = { high: 0, "": 1, low: 2 };
+let view = "today", projectFilter = null, q = "", openKey = null, armedDelete = null;
+try { const v = localStorage.getItem("todo-desk-view"); if (v && VIEWS.some((x) => x.id === v)) view = v; } catch (e) {}
+
 function view_(t) {
   const f = t.fields;
   const due = /^\d{4}-\d{2}-\d{2}$/.test(f.due || "") ? f.due : null;
@@ -339,37 +601,24 @@ function view_(t) {
   const src = t.tail.match(/\[([^\]]+)\]\(([^)\s]+)\)/);
   let source = null;
   if (src) {
-    const url = /^https?:/.test(src[2]) ? src[2] : `https://github.com/${settings.owner}/${settings.repo}/blob/${settings.branch}/${src[2]}`;
-    source = { label: src[1], url };
+    if (/^https?:/.test(src[2])) source = { label: src[1], url: src[2] };
+    else { const p = resolvePath(settings.path, src[2]); source = { label: src[1], url: files[p] != null ? docLink(p) : `https://github.com/${settings.owner}/${settings.repo}/blob/${settings.branch}/${enc(p)}`, path: p }; }
   }
   const added = (t.tail.match(/added (\d{4}-\d{2}-\d{2})/) || [])[1] || (f.created || "").slice(0, 10);
   return { t, key: keyOf(t), title: t.title, done: t.done, due, project, status, priority: f.priority === "high" || f.priority === "low" ? f.priority : "",
     waiting: f.waiting || "", star: f.star === "yes", notes: t.notes.join("\n"), source, added, doneOn: f.done || "" };
 }
 function tasks() { return entries.filter((e) => e.type === "task").map(view_); }
-function projects() {
-  const names = listedProjects(entries);
-  for (const v of tasks()) if (v.project && !names.includes(v.project)) names.push(v.project);
-  const list = names.filter((n) => n !== ADMIN).concat([ADMIN]);
-  return list.map((name, i) => ({ name, color: name === ADMIN ? "p7" : "p" + ((i % 6) + 1) }));
-}
-const projColor = (name) => "var(--" + (projects().find((p) => p.name === name)?.color || "p7") + ")";
-
-function sortTasks(list) {
-  return list.slice().sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || (a.due || "9999").localeCompare(b.due || "9999"));
-}
 const openTasks = () => tasks().filter((t) => !t.done);
+function sortTasks(list) { return list.slice().sort((a, b) => (PRI_RANK[a.priority] - PRI_RANK[b.priority]) || (a.due || "9999").localeCompare(b.due || "9999")); }
 function visible(list) {
   let out = list;
   if (projectFilter) out = out.filter((t) => t.project === projectFilter);
   if (q) { const n = q.toLowerCase(); out = out.filter((t) => [t.title, t.notes, t.waiting, t.project].some((f) => (f || "").toLowerCase().includes(n))); }
   return out;
 }
-
-// ---------- rendering ----------
-function renderStats() {
-  const o = openTasks();
-  const c = (f) => o.filter(f).length;
+function statsHtml() {
+  const o = openTasks(); const c = (f) => o.filter(f).length;
   const overdue = c((t) => t.due && daysFromToday(t.due) < 0), dueToday = c((t) => t.due && daysFromToday(t.due) === 0);
   const cells = [
     { n: overdue, l: "Overdue", cls: overdue ? "late" : "", v: "upcoming" },
@@ -378,26 +627,26 @@ function renderStats() {
     { n: c((t) => t.status === "waiting"), l: "Waiting on others", cls: "", v: "waiting" },
     { n: o.length, l: "Open", cls: "", v: "all" },
   ];
-  $("stats").innerHTML = cells.map((x) => `<button class="stat ${x.cls}" data-view="${x.v}"><span class="n">${loaded ? x.n : "–"}</span><span class="l">${x.l}</span></button>`).join("");
+  return `<div class="stats">${cells.map((x) => `<button class="stat ${x.cls}" data-view="${x.v}"><span class="n">${x.n}</span><span class="l">${x.l}</span></button>`).join("")}</div>`;
 }
-function renderRail() {
-  const o = openTasks();
-  const counts = { today: o.filter((t) => (t.due && daysFromToday(t.due) <= 0) || t.star).length, upcoming: o.filter((t) => t.due).length,
-    projects: o.length, waiting: o.filter((t) => t.status === "waiting").length, all: o.length, done: tasks().length - o.length };
-  $("views").innerHTML = VIEWS.map((v) => `<button class="nav" data-view="${v.id}" aria-current="${view === v.id}">${esc(v.label)}<span class="ct">${loaded ? counts[v.id] : ""}</span></button>`).join("");
-  const ps = projects();
-  $("projects").innerHTML = [`<button class="nav" data-project="" aria-current="${!projectFilter}"><span class="dot" style="background:var(--faint)"></span>All projects</button>`]
-    .concat(ps.map((p) => `<button class="nav" data-project="${esc(p.name)}" aria-current="${projectFilter === p.name}"><span class="dot" style="background:var(--${p.color})"></span>${esc(p.name)}<span class="ct">${o.filter((t) => t.project === p.name).length || ""}</span></button>`)).join("");
-  const sel = $("addProject"), cur = sel.value;
-  sel.innerHTML = `<option value="">No project</option>` + ps.map((p) => `<option>${esc(p.name)}</option>`).join("");
-  sel.value = projectFilter || cur || "";
+function addFormHtml() {
+  return `<form class="add" id="addForm" autocomplete="off">
+    <div class="row">
+      <input type="text" id="addTitle" placeholder="Add a to-do… e.g. Send Leads Team the new script #leads !high @Amy" aria-label="New to-do">
+      <select id="addProject" aria-label="Project"><option value="">No project</option>${D.projects.map((p) => `<option ${projectFilter === p.name ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select>
+      <input type="date" id="addDue" aria-label="Due date">
+      <select id="addPri" aria-label="Priority"><option value="">Normal</option><option value="high">High</option><option value="low">Low</option></select>
+      <button class="btn primary" type="submit">Add</button>
+    </div>
+    <div class="hint">Shortcuts in the text: <code>#project</code> picks a project, <code>!high</code> or <code>!low</code> sets priority, <code>@name</code> marks it as waiting on that person.</div>
+  </form>`;
 }
-function taskHtml(t) {
+function taskHtml(t, showProject = true) {
   const chips = [];
   if (t.priority === "high") chips.push(`<span class="chip pri">High</span>`);
   if (t.due && !t.done) { const n = daysFromToday(t.due); chips.push(`<span class="chip due ${n < 0 ? "late" : n <= 1 ? "soon" : ""}">${n < 0 ? "Overdue · " : ""}${esc(fmtDue(t.due))}</span>`); }
   else if (t.done && t.doneOn) chips.push(`<span class="chip due">Done ${esc(fmtDue(t.doneOn))}</span>`);
-  if (t.project && (view !== "projects" || projectFilter)) chips.push(`<span class="chip"><span class="dot" style="background:${projColor(t.project)}"></span>${esc(t.project)}</span>`);
+  if (t.project && showProject) chips.push(`<span class="chip"><span class="dot" style="background:${projColor(t.project)}"></span>${esc(t.project)}</span>`);
   if (t.status === "doing") chips.push(`<span class="chip doing">In progress</span>`);
   if (t.status === "waiting") chips.push(`<span class="chip wait">Waiting${t.waiting ? " on " + esc(t.waiting) : ""}</span>`);
   if (t.notes) chips.push(`<span class="notes-flag">Notes</span>`);
@@ -412,12 +661,11 @@ function taskHtml(t) {
   </li>`;
 }
 function editHtml(t) {
-  const ps = projects();
   const opts = (pairs, cur) => pairs.map(([k, v]) => `<option value="${esc(k)}" ${k === cur ? "selected" : ""}>${esc(v)}</option>`).join("");
   return `<form class="edit" data-edit="${esc(t.key)}">
     <div class="fields">
       <label class="field wide">To-do<input name="title" value="${esc(t.title)}"></label>
-      <label class="field">Project<select name="project">${opts([["", "No project"]].concat(ps.map((p) => [p.name, p.name])), t.project)}</select></label>
+      <label class="field">Project<select name="project">${opts([["", "No project"]].concat(D.projects.map((p) => [p.name, p.name])), t.project)}</select></label>
       <label class="field">Status<select name="status">${opts([["todo", "To do"], ["doing", "In progress"], ["waiting", "Waiting"], ["done", "Done"]], t.status)}</select></label>
       <label class="field">Priority<select name="priority">${opts([["high", "High"], ["", "Normal"], ["low", "Low"]], t.priority)}</select></label>
       <label class="field">Due date<input type="date" name="due" value="${esc(t.due || "")}"></label>
@@ -427,33 +675,37 @@ function editHtml(t) {
     <div class="actions">
       <button class="btn primary" type="submit">Save</button>
       <button class="btn" type="button" data-act="close">Cancel</button>
-      ${t.source ? `<span class="hint source">From <a href="${esc(t.source.url)}" target="_blank" rel="noopener">${esc(t.source.label)}</a></span>` : ""}
+      ${t.source ? `<span class="hint">From <a href="${esc(t.source.url)}" ${t.source.url.startsWith("#") ? "" : 'target="_blank" rel="noopener"'}>${esc(t.source.label)}</a></span>` : ""}
       <span class="spacer"></span>
       <button class="btn danger ${armedDelete === t.key ? "armed" : ""}" type="button" data-act="delete">${armedDelete === t.key ? "Click again to delete" : "Delete"}</button>
     </div>
     ${t.added ? `<div class="hint">Added ${esc(parseYmd(t.added).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }))}</div>` : ""}
   </form>`;
 }
-function group(title, list, cls = "") {
+function group(title, list, cls = "", showProject = true) {
   if (!list.length) return "";
-  return `<div class="group ${cls}"><h3>${esc(title)}<span class="ct">${list.length}</span></h3><ul class="tasks">${list.map(taskHtml).join("")}</ul></div>`;
+  return `<div class="group ${cls}"><h3>${esc(title)}<span class="ct">${list.length}</span></h3><ul class="tasks">${list.map((t) => taskHtml(t, showProject)).join("")}</ul></div>`;
 }
-function renderList() {
+function todayGroups(o) {
+  const by = (f) => sortTasks(o.filter((t) => t.due && f(daysFromToday(t.due))));
+  return group("Overdue", by((n) => n < 0), "late") + group("Due today", by((n) => n === 0)) +
+    group("Starred for today", sortTasks(o.filter((t) => t.star && !(t.due && daysFromToday(t.due) <= 0))));
+}
+function todosListHtml() {
   const label = VIEWS.find((v) => v.id === view).label;
-  let html = `<div class="toolbar"><h2>${esc(label)}${projectFilter ? " · " + esc(projectFilter) : ""}</h2><input type="search" id="search" placeholder="Search to-dos" value="${esc(q)}" aria-label="Search to-dos"></div>`;
-  if (!loaded) { $("list").innerHTML = html + `<div class="empty">${settings.key ? "Loading your to-dos…" : "Open Settings and paste your GitHub key to load your to-dos."}</div>`; return; }
+  const pf = projectFilter ? projByName(projectFilter) : null;
+  let html = `<div class="toolbar"><h2>${esc(label)}${projectFilter ? " · " + esc(projectFilter) : ""}</h2><div class="actions">${pf ? `<a class="btn small" href="#projects/${esc(pf.slug)}">Open project page</a>` : ""}<input type="search" id="search" placeholder="Filter to-dos" value="${esc(q)}" aria-label="Filter to-dos"></div></div>`;
   const o = visible(openTasks());
   let body = "";
   const by = (f) => sortTasks(o.filter((t) => t.due && f(daysFromToday(t.due))));
   if (view === "today") {
-    body = group("Overdue", by((n) => n < 0), "late") + group("Due today", by((n) => n === 0)) +
-      group("Starred for today", sortTasks(o.filter((t) => t.star && !(t.due && daysFromToday(t.due) <= 0))));
+    body = todayGroups(o);
     if (!body) body = `<div class="empty">Nothing due today. Star a to-do to pin it here.</div>` + group("Coming up next", o.filter((t) => t.due).sort((a, b) => a.due.localeCompare(b.due)).slice(0, 5));
   } else if (view === "upcoming") {
     body = group("Overdue", by((n) => n < 0), "late") + group("Today", by((n) => n === 0)) + group("Tomorrow", by((n) => n === 1)) +
       group("Next 7 days", by((n) => n > 1 && n <= 7)) + group("Later", by((n) => n > 7)) + group("No due date", sortTasks(o.filter((t) => !t.due)));
   } else if (view === "projects") {
-    body = projects().map((p) => group(p.name, sortTasks(o.filter((t) => t.project === p.name)))).join("") + group("No project", sortTasks(o.filter((t) => !t.project)));
+    body = D.projects.map((p) => group(p.name, sortTasks(o.filter((t) => t.project === p.name)), "", false)).join("") + group("No project", sortTasks(o.filter((t) => !t.project)));
   } else if (view === "waiting") {
     const w = o.filter((t) => t.status === "waiting");
     body = [...new Set(w.map((t) => t.waiting || "Someone"))].sort().map((n) => group(n, sortTasks(w.filter((t) => (t.waiting || "Someone") === n)))).join("");
@@ -464,146 +716,595 @@ function renderList() {
     if (!body) body = `<div class="empty">Finished to-dos land here.</div>`;
   }
   if (!body) body = `<div class="empty">${q || projectFilter ? "No to-dos match." : "No open to-dos. Add one above."}</div>`;
-  $("list").innerHTML = html + body;
+  return html + body;
 }
-function render() {
-  $("today").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-  renderStats(); renderRail();
-  if (!document.activeElement?.closest?.("form[data-edit]")) renderList();
+function pageTodos() {
+  const o = openTasks();
+  const counts = { today: o.filter((t) => (t.due && daysFromToday(t.due) <= 0) || t.star).length, upcoming: o.filter((t) => t.due).length,
+    projects: o.length, waiting: o.filter((t) => t.status === "waiting").length, all: o.length, done: tasks().length - o.length };
+  return statsHtml() + addFormHtml() + `<div class="main">
+    <aside class="rail">
+      <div><h2>Views</h2><div class="navlist views">${VIEWS.map((v) => `<button class="nav" data-view="${v.id}" aria-current="${view === v.id}">${esc(v.label)}<span class="ct">${counts[v.id]}</span></button>`).join("")}</div></div>
+      <div><h2>Projects</h2><div class="navlist projects">
+        <button class="nav" data-project="" aria-current="${!projectFilter}"><span class="dot" style="background:var(--faint)"></span>All projects</button>
+        ${D.projects.map((p) => `<button class="nav" data-project="${esc(p.name)}" aria-current="${projectFilter === p.name}"><span class="dot" style="background:var(--${p.color})"></span>${esc(p.name)}<span class="ct">${o.filter((t) => t.project === p.name).length || ""}</span></button>`).join("")}
+      </div>
+      <form class="newproj" id="newProj"><input type="text" id="newProjName" placeholder="+ New project" aria-label="New project name"></form></div>
+    </aside>
+    <section class="list" id="list">${todosListHtml()}</section>
+  </div>`;
 }
 
-// ---------- saving ----------
+// ===================== pages =====================
+const TABS = [["home", "Home"], ["todos", "To-dos"], ["projects", "Projects"], ["people", "People"], ["library", "Meetings & Slack"], ["sops", "SOPs"], ["decisions", "Decisions"], ["launches", "Launches"], ["reels", "Reels"], ["leads", "Leads"], ["review", "Review"]];
+let editingPath = null;
+function route() {
+  let h = location.hash.replace(/^#/, "");
+  try { h = decodeURIComponent(h); } catch (e) {}
+  const i = h.indexOf("/");
+  return i < 0 ? { head: h || "home", arg: "" } : { head: h.slice(0, i), arg: h.slice(i + 1) };
+}
+
+function eventsHtml(list, withDay) {
+  if (!list.length) return "";
+  let html = "", day = "";
+  for (const e of list) {
+    const d = etDay(e.start);
+    if (withDay && d !== day) { day = d; html += `<li class="dayrow">${esc(etDayLabel(e.start))}</li>`; }
+    const others = (e.attendees || []).filter((a) => !/^kyle/i.test(a));
+    html += `<li><div class="ev"><span class="tm">${esc(etTime(e.start))}</span><span><strong>${esc(e.title)}</strong>${others.length ? `<span class="rd"> · ${others.slice(0, 5).map((a) => { const p = personFor(a); return p ? `<a href="#people/${esc(p.slug)}">${esc(p.name.split(" ")[0])}</a>` : esc(a); }).join(", ")}</span>` : ""}</span>${e.link ? `<a class="btn small" href="${esc(e.link)}" target="_blank" rel="noopener">Join</a>` : "<span></span>"}</div></li>`;
+  }
+  return `<ul class="rows">${html}</ul>`;
+}
+function launchCard(l) {
+  const done = l.items.filter((i) => i.done).length, n = l.items.length;
+  const days = l.date ? Math.round((parseYmd(etDay(l.date)) - parseYmd(todayStr())) / 86400000) : null;
+  const when = l.date ? (days > 1 ? `In ${days} days` : days === 1 ? "Tomorrow" : days === 0 ? "Today" : "Finished") : "No date";
+  return `<a class="card" href="#launches/${esc(l.slug)}"><span class="t">${esc(l.name)}</span>
+    <span class="meta"><span class="chip ${days != null && days >= 0 && days <= 3 ? "soon" : ""}">${esc(when)}</span>${l.date ? `<span>${esc(etDayLabel(l.date))}${l.date.includes("T") ? ", " + esc(etTime(l.date)) + " ET" : ""}</span>` : ""}</span>
+    <span class="bar"><span style="width:${n ? Math.round((done / n) * 100) : 0}%"></span></span><span class="d">${done} of ${n} done</span></a>`;
+}
+function docRow(d) {
+  return `<li><a class="rt" href="${docLink(d.path)}">${esc(d.title)}</a><span class="rm">${d.kind === "meeting" ? "Meeting" : "Slack"} · ${esc(d.when || fmtDay(d.date))}</span>${d.summary ? `<span class="rd">${esc(short(d.summary, 220))}</span>` : ""}</li>`;
+}
+function sopsHtml(list, empty) {
+  if (!list.length) return empty ? `<div class="empty">${empty}</div>` : "";
+  return `<div class="panel" style="padding:0;gap:0">${list.map((s) => `<details class="sop"><summary>${esc(s.title)}${s.status === "draft" ? `<span class="chip soon">Draft</span>` : ""}${s.owner ? `<span class="chip">${esc(s.owner)}</span>` : ""}</summary><div class="md">${renderMd(s.body, "sops.md")}</div></details>`).join("")}</div>`;
+}
+
+function pageHome() {
+  const o = openTasks();
+  const today = etDay(new Date().toISOString());
+  const todays = D.events.filter((e) => etDay(e.start) === today && new Date(e.end) > new Date(Date.now() - 1800000));
+  const later = D.events.filter((e) => etDay(e.start) > today).slice(0, 6);
+  const launches = D.launches.filter((l) => !l.date || etDay(l.date) >= today);
+  const todo = todayGroups(o) || `<div class="empty">Nothing due today. Star a to-do to pin it here.</div>`;
+  return statsHtml() + addFormHtml() + `<div class="cols">
+    <div class="stack">${todo}</div>
+    <div class="stack">
+      <div class="group"><h3 class="st">Today's meetings (ET)</h3>${eventsHtml(todays) || `<div class="empty">No more meetings today.</div>`}</div>
+      ${later.length ? `<div class="group"><h3 class="st">Coming up</h3>${eventsHtml(later, true)}</div>` : ""}
+      ${D.calendarUpdated ? `<div class="hint">Calendar updated ${esc(new Date(D.calendarUpdated).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }))}</div>` : ""}
+      ${launches.length ? `<div class="group"><h3 class="st">Launches</h3>${launches.map(launchCard).join("")}</div>` : ""}
+      ${D.docs.length ? `<div class="group"><h3 class="st">Latest meetings and Slack</h3><ul class="rows">${D.docs.slice(0, 4).map(docRow).join("")}</ul></div>` : ""}
+    </div>
+  </div>`;
+}
+
+function projectDocs(p) {
+  const kws = Array.isArray(p.meta.keywords) ? p.meta.keywords : [];
+  const srcPaths = new Set(tasks().filter((t) => t.project === p.name && t.source?.path).map((t) => t.source.path));
+  return D.docs.filter((d) => srcPaths.has(d.path) || kws.some((k) => d.lower.includes(k.toLowerCase()))).map((d) => ({ d, snip: snippet(d.text.split(/\n## (?:Transcript|Messages)/)[0], kws) }));
+}
+function pageProjects() {
+  const o = openTasks();
+  return `<div class="pagehead"><h2 class="pt">Projects</h2></div><div class="cards">${D.projects.map((p) => {
+    const open = o.filter((t) => t.project === p.name), next = sortTasks(open.filter((t) => t.due))[0];
+    const goal = (p.body.split(/\n## /)[1] || "").split("\n").slice(1).join(" ").trim();
+    return `<a class="card" href="#projects/${esc(p.slug)}"><span class="t"><span class="dot" style="background:var(--${p.color})"></span>${esc(p.name)}</span>
+      <span class="d">${esc(short(goal || "No brief yet.", 140))}</span>
+      <span class="meta"><span class="chip">${open.length} open</span>${next ? `<span class="chip due ${daysFromToday(next.due) < 0 ? "late" : daysFromToday(next.due) <= 1 ? "soon" : ""}">Next due ${esc(fmtDue(next.due))}</span>` : ""}${D.sops.some((s) => s.project === p.name) ? `<span class="chip">${D.sops.filter((s) => s.project === p.name).length} SOPs</span>` : ""}</span></a>`;
+  }).join("")}</div>`;
+}
+function pageProject(slug) {
+  const p = D.projects.find((x) => x.slug === slug);
+  if (!p) return `<a class="back" href="#projects">← Projects</a><div class="empty">No project called that.</div>`;
+  if (editingPath && editingPath === p.path) return editorHtml(p.path, "#projects/" + p.slug);
+  const o = openTasks().filter((t) => t.project === p.name);
+  const doneCount = tasks().filter((t) => t.done && t.project === p.name).length;
+  const launches = D.launches.filter((l) => l.project === p.name || l.path === p.meta.launch);
+  const decisions = D.decisions.filter((d) => d.project === p.name);
+  const sops = D.sops.filter((s) => s.project === p.name);
+  const docs = projectDocs(p);
+  const reels = /reel/i.test(p.name) ? D.reels.slice(0, 8) : [];
+  const people = Array.isArray(p.meta.people) ? p.meta.people : [];
+  return `<a class="back" href="#projects">← Projects</a>
+  <div class="pagehead"><div><h2 class="pt"><span class="dot" style="background:var(--${p.color});width:12px;height:12px"></span>${esc(p.name)}</h2>
+    <div class="meta" style="margin-top:6px">${p.meta.status ? `<span class="chip okc">${esc(p.meta.status)}</span>` : ""}${p.meta.date ? `<span class="chip">${esc(fmtDay(p.meta.date))}</span>` : ""}${people.map(personChip).join("")}</div></div>
+    <div class="actions"><button class="btn small" data-filter-project="${esc(p.name)}">See in To-dos</button>${p.path && files[p.path] != null ? `<button class="btn small" data-editfile="${esc(p.path)}">Edit brief</button>` : `<button class="btn small primary" data-newbrief="${esc(p.name)}">Write a brief</button>`}</div></div>
+  <div class="cols">
+    <div class="stack">
+      ${p.body.trim() ? `<div class="panel md">${renderMd(p.body, p.path)}</div>` : `<div class="empty">No brief yet. Write one to keep the goal, dates and people for this project in one place.</div>`}
+      <div class="group"><h3 class="st">Open to-dos<span class="ct">${o.length}</span>${doneCount ? `<span class="ct">· ${doneCount} done</span>` : ""}</h3>${o.length ? `<ul class="tasks">${sortTasks(o).map((t) => taskHtml(t, false)).join("")}</ul>` : `<div class="empty">No open to-dos.</div>`}</div>
+      <div class="group"><h3 class="st">SOPs<span class="ct">${sops.length}</span></h3>${sopsHtml(sops, "No SOPs for this project yet.")}</div>
+      ${reels.length ? `<div class="group"><h3 class="st">Latest Reels</h3>${reelsTable(reels)}</div>` : ""}
+    </div>
+    <div class="stack">
+      ${launches.length ? `<div class="group"><h3 class="st">Launch</h3>${launches.map(launchCard).join("")}</div>` : ""}
+      <div class="group"><h3 class="st">Decisions<span class="ct">${decisions.length}</span></h3>${decisions.length ? `<ul class="rows">${decisions.map(decisionRow).join("")}</ul>` : `<div class="empty">No decisions recorded yet.</div>`}</div>
+      <div class="group"><h3 class="st">Meetings and Slack<span class="ct">${docs.length}</span></h3>${docs.length ? `<ul class="rows">${docs.map(({ d, snip }) => `<li><a class="rt" href="${docLink(d.path)}">${esc(d.title)}</a><span class="rm">${esc(d.when || fmtDay(d.date))}</span>${snip ? `<span class="rd">${snip}</span>` : ""}</li>`).join("")}</ul>` : `<div class="empty">Nothing mentions this project yet.</div>`}</div>
+    </div>
+  </div>`;
+}
+
+function personMatches(person, name) { const p = personFor(name); return !!p && p.slug === person.slug; }
+function pagePeople() {
+  return `<div class="pagehead"><h2 class="pt">People</h2></div><div class="cards">${D.people.map((p) => {
+    const waiting = openTasks().filter((t) => t.waiting && personMatches(p, t.waiting)).length;
+    const last = D.docs.find((d) => d.attendees.some((a) => personMatches(p, a)));
+    const next = D.events.find((e) => new Date(e.end) > new Date() && (e.attendees || []).some((a) => personMatches(p, a)));
+    return `<a class="card" href="#people/${esc(p.slug)}"><span class="t">${esc(p.name)}</span><span class="d">${esc(p.meta.role || "Role not recorded yet.")}</span>
+      <span class="meta">${waiting ? `<span class="chip wait">You're waiting on ${waiting}</span>` : ""}${next ? `<span class="chip">Next: ${esc(next.title)}, ${esc(new Date(next.start).toLocaleDateString("en-US", { timeZone: TZ, weekday: "short" }))}</span>` : last ? `<span class="chip">Last met ${esc(fmtDay(last.date))}</span>` : ""}</span></a>`;
+  }).join("")}</div>`;
+}
+function pagePerson(slug) {
+  const p = D.people.find((x) => x.slug === slug);
+  if (!p) return `<a class="back" href="#people">← People</a><div class="empty">No one by that name.</div>`;
+  if (editingPath === p.path) return editorHtml(p.path, "#people/" + p.slug);
+  const waiting = openTasks().filter((t) => t.waiting && personMatches(p, t.waiting));
+  const launchWaits = D.launches.flatMap((l) => l.items.filter((i) => !i.done && i.fields.waiting && personMatches(p, i.fields.waiting)).map((i) => ({ l, i })));
+  const steps = D.docs.flatMap((d) => d.nextSteps.filter((s) => s.who && personMatches(p, s.who)).map((s) => ({ d, s })));
+  const met = D.docs.filter((d) => d.attendees.some((a) => personMatches(p, a)) || (d.kind === "slack" && p.aliases.some((a) => d.lower.includes(a))));
+  const upcoming = D.events.filter((e) => new Date(e.end) > new Date() && (e.attendees || []).some((a) => personMatches(p, a)));
+  const projects = D.projects.filter((x) => Array.isArray(x.meta.people) && x.meta.people.some((n) => personMatches(p, n)));
+  const sops = D.sops.filter((s) => s.owner && personMatches(p, s.owner));
+  const profile = p.meta.profile && files[p.meta.profile];
+  const first = p.name.split(" ")[0];
+  return `<a class="back" href="#people">← People</a>
+  <div class="pagehead"><div><h2 class="pt">${esc(p.name)}</h2><div class="sub">${esc(p.meta.role || "Role not recorded yet.")}</div>
+    <div class="meta" style="margin-top:6px">${projects.map((x) => projectChip(x.name)).join("")}</div></div>
+    <div class="actions"><button class="btn small" data-editfile="${esc(p.path)}">Edit notes</button></div></div>
+  <div class="cols">
+    <div class="stack">
+      ${upcoming.length ? `<div class="group"><h3 class="st">Next meetings together (ET)</h3>${eventsHtml(upcoming, true)}</div>` : ""}
+      <div class="group"><h3 class="st">You're waiting on ${esc(first)}<span class="ct">${waiting.length + launchWaits.length}</span></h3>
+        ${waiting.length ? `<ul class="tasks">${sortTasks(waiting).map((t) => taskHtml(t)).join("")}</ul>` : ""}
+        ${launchWaits.length ? `<ul class="rows">${launchWaits.map(({ l, i }) => `<li><a class="rt" href="#launches/${esc(l.slug)}">${esc(i.title)}</a><span class="rm">${esc(l.name)}${i.fields.due ? " · due " + esc(fmtDue(i.fields.due)) : ""}</span></li>`).join("")}</ul>` : ""}
+        ${!waiting.length && !launchWaits.length ? `<div class="empty">Nothing. Mark a to-do as waiting on ${esc(first)} to see it here.</div>` : ""}</div>
+      <div class="group"><h3 class="st">${esc(first)}'s next steps from meetings and Slack<span class="ct">${steps.length}</span></h3>${steps.length ? `<ul class="rows">${steps.map(({ d, s }) => `<li><span>${esc(s.what)}</span><a class="rm" href="${docLink(d.path)}">${esc(d.title)}, ${esc(fmtDay(d.date))}</a></li>`).join("")}</ul>` : `<div class="empty">None recorded.</div>`}</div>
+      ${sops.length ? `<div class="group"><h3 class="st">SOPs ${esc(first)} owns<span class="ct">${sops.length}</span></h3>${sopsHtml(sops)}</div>` : ""}
+      ${p.body.trim() ? `<div class="panel md">${renderMd(p.body, p.path)}</div>` : ""}
+      ${profile ? `<details class="panel md"><summary><strong>How ${esc(first)} thinks</strong> (read before a conversation)</summary>${renderMd(frontmatter(profile).body, p.meta.profile)}</details>` : ""}
+    </div>
+    <div class="stack">
+      <div class="group"><h3 class="st">Meetings and Slack<span class="ct">${met.length}</span></h3>${met.length ? `<ul class="rows">${met.map(docRow).join("")}</ul>` : `<div class="empty">No meetings recorded yet.</div>`}</div>
+    </div>
+  </div>`;
+}
+
+function pageLibrary() {
+  const meetings = D.docs.filter((d) => d.kind === "meeting"), slack = D.docs.filter((d) => d.kind === "slack");
+  const other = Object.keys(files).filter((p) => p.startsWith("ai-bryan/") && !/README/i.test(p));
+  return `<div class="pagehead"><h2 class="pt">Meetings &amp; Slack</h2><span class="sub">Use the search box above to search all of it.</span></div>
+  <div class="cols">
+    <div class="group"><h3 class="st">Meetings<span class="ct">${meetings.length}</span></h3>${meetings.length ? `<ul class="rows">${meetings.map(docRow).join("")}</ul>` : `<div class="empty">No meetings imported yet.</div>`}</div>
+    <div class="stack">
+      <div class="group"><h3 class="st">Slack<span class="ct">${slack.length}</span></h3>${slack.length ? `<ul class="rows">${slack.map(docRow).join("")}</ul>` : `<div class="empty">No Slack logged yet.</div>`}</div>
+      ${other.length ? `<div class="group"><h3 class="st">Notes</h3><ul class="rows">${other.map((p) => `<li><a class="rt" href="${docLink(p)}">${esc((frontmatter(files[p]).body.match(/^#\s+(.+)$/m) || [, fileSlug(p)])[1])}</a></li>`).join("")}</ul></div>` : ""}
+    </div>
+  </div>`;
+}
+function pageDoc(path) {
+  if (files[path] == null) return `<a class="back" href="#library">← Meetings &amp; Slack</a><div class="empty">That file isn't in the workspace.</div>`;
+  const { body } = frontmatter(files[path]);
+  const d = D.docs.find((x) => x.path === path);
+  return `<a class="back" href="javascript:history.back()">← Back</a>
+    ${d ? `<div class="meta">${d.when ? `<span class="chip">${esc(d.when)}</span>` : ""}${d.attendees.map(personChip).join("")}</div>` : ""}
+    <div class="panel md">${renderMd(body, path)}</div>
+    <div class="hint"><a href="https://github.com/${esc(settings.owner)}/${esc(settings.repo)}/blob/${esc(settings.branch)}/${esc(enc(path))}" target="_blank" rel="noopener">Open in GitHub</a></div>`;
+}
+function pageSops() {
+  const byProject = {};
+  for (const s of D.sops) (byProject[s.project || "Other"] ||= []).push(s);
+  const order = D.projects.map((p) => p.name).filter((n) => byProject[n]).concat(Object.keys(byProject).filter((n) => !projByName(n)));
+  return `<div class="pagehead"><h2 class="pt">SOPs</h2><span class="sub">Standing ways of working, from sops.md</span></div>
+    ${order.length ? order.map((n) => `<div class="group"><h3 class="st">${projByName(n) ? projectChip(n) : esc(n)}<span class="ct">${byProject[n].length}</span></h3>${sopsHtml(byProject[n])}</div>`).join("") : `<div class="empty">No SOPs yet.</div>`}`;
+}
+
+function decisionRow(d) {
+  return `<li><span>${esc(d.text)}</span><span class="meta"><span class="rm">${esc(fmtDay(d.date))}</span>${d.project ? projectChip(d.project) : ""}${d.source ? `<a class="rm" href="${files[d.source.path] != null ? docLink(d.source.path) : "#decisions"}">${esc(d.source.label)}</a>` : ""}</span></li>`;
+}
+function pageDecisions() {
+  return `<div class="pagehead"><h2 class="pt">Decisions</h2><span class="sub">From each meeting's "Decisions Made", plus any you add here.</span></div>
+  <form class="panel formrow" id="decForm" autocomplete="off">
+    <input type="text" id="decText" placeholder="Record a decision… e.g. Webinar replay goes out within 24 hours" aria-label="Decision">
+    <select id="decProject" aria-label="Project"><option value="">No project</option>${D.projects.map((p) => `<option>${esc(p.name)}</option>`).join("")}</select>
+    <button class="btn primary" type="submit">Add</button>
+  </form>
+  ${D.decisions.length ? `<ul class="rows">${D.decisions.map(decisionRow).join("")}</ul>` : `<div class="empty">No decisions yet.</div>`}`;
+}
+
+function pageLaunches() {
+  return `<div class="pagehead"><h2 class="pt">Launches</h2></div>${D.launches.length ? `<div class="cards">${D.launches.map(launchCard).join("")}</div>` : `<div class="empty">No launches yet. Ask Claude to set one up.</div>`}`;
+}
+function pageLaunch(slug) {
+  const l = D.launches.find((x) => x.slug === slug);
+  if (!l) return `<a class="back" href="#launches">← Launches</a><div class="empty">No launch called that.</div>`;
+  if (editingPath === l.path) return editorHtml(l.path, "#launches/" + l.slug);
+  const intro = l.body.split(/\n## /)[0].trim();
+  const rows = l.items.map((i) => {
+    const chips = [];
+    if (i.fields.due && !i.done) { const n = daysFromToday(i.fields.due); chips.push(`<span class="chip due ${n < 0 ? "late" : n <= 1 ? "soon" : ""}">${esc(fmtDue(i.fields.due))}</span>`); }
+    if (i.fields.waiting && !i.done) chips.push(`<span class="chip wait">Waiting on ${esc(i.fields.waiting)}</span>`);
+    if (i.done && i.fields.done) chips.push(`<span class="chip">Done ${esc(fmtDue(i.fields.done))}</span>`);
+    return `<div class="lrow ${i.done ? "done" : ""}"><button class="check ${i.done ? "on" : ""}" data-launch="${esc(l.path)}" data-lkey="${esc(keyOf(i))}" aria-label="${i.done ? "Mark not done" : "Mark done"}"></button><div class="tbody"><span class="ttitle">${esc(i.title)}</span>${chips.length ? `<span class="meta">${chips.join("")}</span>` : ""}</div></div>`;
+  }).join("");
+  const done = l.items.filter((i) => i.done).length;
+  return `<a class="back" href="#launches">← Launches</a>
+  <div class="pagehead"><div><h2 class="pt">${esc(l.name)}</h2><div class="sub">${l.date ? esc(etDayLabel(l.date)) + (l.date.includes("T") ? ", " + esc(etTime(l.date)) + " ET" : "") : "No date"}</div></div>
+    <div class="actions">${l.project ? projectChip(l.project) : ""}<button class="btn small" data-editfile="${esc(l.path)}">Edit</button></div></div>
+  ${intro ? `<div class="md">${renderMd(intro, l.path)}</div>` : ""}
+  <div class="bar"><span style="width:${l.items.length ? Math.round((done / l.items.length) * 100) : 0}%"></span></div>
+  <div class="group"><h3 class="st">Checklist<span class="ct">${done} of ${l.items.length}</span></h3><div class="panel" style="padding:0;gap:0">${rows || `<div class="empty">No items yet.</div>`}</div></div>
+  <form class="formrow" id="launchAdd" data-path="${esc(l.path)}" autocomplete="off"><input type="text" id="launchItem" placeholder="Add a checklist item" aria-label="New checklist item"><input type="date" id="launchDue" aria-label="Due date"><button class="btn primary" type="submit">Add</button></form>`;
+}
+
+const REEL_STATUSES = ["written", "edited", "scheduled", "posted"];
+const cap = (s) => s[0].toUpperCase() + s.slice(1);
+function reelsTable(list) {
+  return `<ul class="rows">${list.map((r) => `<li><div style="display:flex;gap:10px;align-items:start;justify-content:space-between;flex-wrap:wrap"><div style="min-width:0;flex:1 1 240px"><a class="rt" href="${docLink(r.path)}">${esc(short(r.name, 90))}</a>${r.hook && r.hook !== r.name ? `<div class="rd">${esc(short(r.hook, 160))}</div>` : ""}<div class="rm">${r.date ? "Written " + esc(fmtDay(r.date)) : ""}</div></div>
+    <select data-reel="${esc(r.path)}" aria-label="Status for ${esc(r.name)}">${REEL_STATUSES.map((s) => `<option value="${s}" ${s === r.status ? "selected" : ""}>${cap(s)}</option>`).join("")}</select></div></li>`).join("")}</ul>`;
+}
+function pageReels() {
+  return `<div class="pagehead"><h2 class="pt">Reels</h2><div class="meta">${REEL_STATUSES.map((s) => `<span class="chip">${cap(s)} ${D.reels.filter((r) => r.status === s).length}</span>`).join("")}</div></div>
+    <div class="hint">Each Reel moves from Written to Edited, Scheduled and Posted. Changing the status saves it into that Reel's file.</div>
+    ${D.reels.length ? reelsTable(D.reels) : `<div class="empty">No Reels saved yet. They appear here as soon as Claude writes them into reels/.</div>`}
+    ${D.sops.some((s) => /reel/i.test(s.project)) ? `<div class="group"><h3 class="st">Reels SOPs</h3>${sopsHtml(D.sops.filter((s) => /reel/i.test(s.project)))}</div>` : ""}`;
+}
+
+function sparkline(vals) {
+  const v = vals.filter((x) => Number.isFinite(x));
+  if (v.length < 2) return "";
+  const w = 140, h = 34, min = Math.min(...v), max = Math.max(...v), r = max - min || 1;
+  const pts = v.map((x, i) => [4 + (i * (w - 8)) / (v.length - 1), h - 4 - ((x - min) / r) * (h - 8)]);
+  const last = pts[pts.length - 1];
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts.map((p) => p.map((n) => n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3" fill="currentColor"/></svg>`;
+}
+function pageLeads() {
+  const { head, rows } = D.leads;
+  if (!head.length) return `<div class="pagehead"><h2 class="pt">Leads Team</h2></div><div class="empty">The numbers file (leads/weekly.csv) is missing. Ask Claude to set it up.</div>`;
+  const label = (h) => cap(h.replace(/_/g, " "));
+  const numCols = head.map((h, i) => i).filter((i) => i > 0 && head[i] !== "notes");
+  const chrono = rows.slice().reverse();
+  const monday = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return ymd(d); })();
+  const lt = projByName("Leads Team");
+  return `<div class="pagehead"><div><h2 class="pt">Leads Team</h2><span class="sub">Weekly numbers from leads/weekly.csv</span></div>${lt ? `<a class="btn small" href="#projects/${esc(lt.slug)}">Leads Team project page</a>` : ""}</div>
+  ${rows.length ? `<div class="cards">${numCols.map((i) => `<div class="card trend"><span class="d">${esc(label(head[i]))}</span><span class="v">${esc(rows[0][i] || "–")}</span>${sparkline(chrono.map((r) => (r[i] === "" ? NaN : Number(r[i]))))}<span class="rm hint">Week of ${esc(fmtDay(rows[0][0]))}</span></div>`).join("")}</div>` : ""}
+  <form class="panel" id="leadsForm" autocomplete="off"><strong>Add or update a week</strong><div class="fields">${head.map((h, i) => `<label class="field ${h === "notes" ? "wide" : ""}">${esc(label(h))}<input name="c${i}" ${i === 0 ? `type="date" value="${monday}"` : h === "notes" ? "" : 'inputmode="decimal"'}></label>`).join("")}</div><div class="actions"><button class="btn primary" type="submit">Save week</button><span class="hint">Saving a week that's already there replaces it.</span></div></form>
+  ${rows.length ? `<div class="tablewrap"><table class="data"><thead><tr>${head.map((h, i) => `<th class="${numCols.includes(i) ? "num" : ""}">${esc(label(h))}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${head.map((h, i) => `<td class="${numCols.includes(i) ? "num" : ""}">${esc(r[i] || "")}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="empty">No weeks entered yet. Add this week's numbers above, and trends appear after two weeks.</div>`}`;
+}
+
+function reviewData() {
+  const today = todayStr(), weekAgo = ymd(new Date(Date.now() - 6 * 86400000)), weekOut = ymd(new Date(Date.now() + 7 * 86400000));
+  const all = tasks(), o = all.filter((t) => !t.done);
+  return {
+    weekAgo, today,
+    done: all.filter((t) => t.done && t.doneOn && t.doneOn >= weekAgo),
+    slipped: sortTasks(o.filter((t) => t.due && t.due < today)),
+    next: o.filter((t) => t.due && t.due >= today && t.due <= weekOut).sort((a, b) => a.due.localeCompare(b.due)),
+    waiting: o.filter((t) => t.status === "waiting"),
+    decisions: D.decisions.filter((d) => d.date >= weekAgo),
+    meetings: D.docs.filter((d) => d.date >= weekAgo),
+    launches: D.launches.filter((l) => l.date && etDay(l.date) >= today && etDay(l.date) <= ymd(new Date(Date.now() + 14 * 86400000))),
+  };
+}
+function reviewText() {
+  const r = reviewData(), lines = [`Weekly update, ${fmtDay(r.weekAgo)} to ${fmtDay(r.today)}`, ""];
+  const sec = (title, list, f) => { if (!list.length) return; lines.push(title + ":"); list.forEach((x) => lines.push("- " + f(x))); lines.push(""); };
+  sec("Done", r.done, (t) => t.title);
+  sec("Behind", r.slipped, (t) => `${t.title} (was due ${fmtDue(t.due)})`);
+  sec("Coming up", r.next, (t) => `${t.title} (${fmtDue(t.due)})`);
+  sec("Waiting on others", r.waiting, (t) => `${t.title}${t.waiting ? " (" + t.waiting + ")" : ""}`);
+  sec("Launches", r.launches, (l) => `${l.name}: ${fmtDay(etDay(l.date))}, ${l.items.filter((i) => i.done).length} of ${l.items.length} items done`);
+  sec("Decisions", r.decisions, (d) => d.text);
+  return lines.join("\n").trim();
+}
+function pageReview() {
+  const r = reviewData();
+  const list = (title, items, f, empty) => `<div class="group"><h3 class="st">${title}<span class="ct">${items.length}</span></h3>${items.length ? `<ul class="rows">${items.map((x) => `<li>${f(x)}</li>`).join("")}</ul>` : `<div class="empty">${empty}</div>`}</div>`;
+  return `<div class="pagehead"><div><h2 class="pt">Weekly review</h2><div class="sub">${esc(fmtDay(r.weekAgo))} to ${esc(fmtDay(r.today))}</div></div><button class="btn primary" id="copyReview" type="button">Copy as an update</button></div>
+  <div class="cols"><div class="stack">
+    ${list("Done this week", r.done, (t) => `<span>${esc(t.title)}</span><span class="meta">${projectChip(t.project)}<span class="rm">${esc(fmtDue(t.doneOn))}</span></span>`, "Nothing ticked off in the last 7 days.")}
+    ${list("Behind", r.slipped, (t) => `<span>${esc(t.title)}</span><span class="meta"><span class="chip late">Was due ${esc(fmtDue(t.due))}</span>${projectChip(t.project)}</span>`, "Nothing overdue.")}
+    ${list("Due in the next 7 days", r.next, (t) => `<span>${esc(t.title)}</span><span class="meta"><span class="chip due">${esc(fmtDue(t.due))}</span>${projectChip(t.project)}</span>`, "Nothing due next week.")}
+  </div><div class="stack">
+    ${r.launches.length ? `<div class="group"><h3 class="st">Launches in the next 2 weeks</h3>${r.launches.map(launchCard).join("")}</div>` : ""}
+    ${list("Waiting on others", r.waiting, (t) => `<span>${esc(t.title)}</span><span class="rm">${esc(t.waiting || "Someone")}</span>`, "Nothing waiting.")}
+    ${list("Decisions this week", r.decisions, (d) => `<span>${esc(d.text)}</span><span class="rm">${esc(fmtDay(d.date))}</span>`, "No decisions recorded.")}
+    ${list("Meetings and Slack this week", r.meetings, (d) => `<a class="rt" href="${docLink(d.path)}">${esc(d.title)}</a><span class="rm">${esc(fmtDay(d.date))}</span>`, "None recorded.")}
+  </div></div>`;
+}
+
+function pageSearch(term) {
+  const needle = term.trim();
+  if (needle.length < 2) return `<div class="empty">Type at least two letters to search.</div>`;
+  const l = needle.toLowerCase();
+  const t = tasks().filter((x) => (x.title + " " + x.notes + " " + x.waiting).toLowerCase().includes(l));
+  const fileHits = Object.keys(files).filter((p) => p.endsWith(".md") && p !== settings.path && files[p].toLowerCase().includes(l)).map((p) => {
+    const d = D.docs.find((x) => x.path === p), txt = files[p], fm = frontmatter(txt);
+    return { p, title: d ? d.title : (fm.meta.name || (fm.body.match(/^#\s+(.+)$/m) || [, fileSlug(p)])[1]), when: d ? d.when || fmtDay(d.date) : cap(p.includes("/") ? p.split("/")[0] : "notes"), count: txt.toLowerCase().split(l).length - 1, snip: snippet(txt, [needle]) };
+  }).sort((a, b) => b.count - a.count);
+  return `<div class="pagehead"><h2 class="pt">Results for "${esc(needle)}"</h2></div>
+    ${t.length ? group("To-dos", sortTasks(t)) : ""}
+    <div class="group"><h3 class="st">Meetings, Slack and notes<span class="ct">${fileHits.length}</span></h3>${fileHits.length ? `<ul class="rows">${fileHits.map((h) => `<li><a class="rt" href="${docLink(h.p)}">${esc(h.title)}</a><span class="rm">${esc(h.when)} · ${h.count} match${h.count === 1 ? "" : "es"}</span><span class="rd">${h.snip}</span></li>`).join("")}</ul>` : `<div class="empty">No matches.</div>`}</div>`;
+}
+
+function editorHtml(path, back) {
+  return `<a class="back" href="${back}">← Back</a><form class="panel" id="fileEditor" data-path="${esc(path)}"><strong>Editing ${esc(path)}</strong>
+    <textarea class="raw" id="rawText">${esc(files[path] || "")}</textarea>
+    <div class="actions"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" id="cancelEdit">Cancel</button></div></form>`;
+}
+
+// ===================== render =====================
+function render() {
+  $("today").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  const r = route();
+  const tab = r.head === "doc" ? "library" : r.head;
+  $("tabs").innerHTML = TABS.map(([id, label]) => `<a href="#${id}" aria-current="${tab === id ? "page" : "false"}">${label}</a>`).join("");
+  if (!loaded) { $("page").innerHTML = `<div class="empty">${settings.key ? "Loading your workspace…" : "Open Settings and paste your GitHub key to load your workspace."}</div>`; return; }
+  let html;
+  switch (r.head) {
+    case "todos": html = pageTodos(); break;
+    case "projects": html = r.arg ? pageProject(r.arg) : pageProjects(); break;
+    case "people": html = r.arg ? pagePerson(r.arg) : pagePeople(); break;
+    case "library": html = pageLibrary(); break;
+    case "doc": html = pageDoc(r.arg); break;
+    case "sops": html = pageSops(); break;
+    case "decisions": html = pageDecisions(); break;
+    case "launches": html = r.arg ? pageLaunch(r.arg) : pageLaunches(); break;
+    case "reels": html = pageReels(); break;
+    case "leads": html = pageLeads(); break;
+    case "review": html = pageReview(); break;
+    case "search": html = pageSearch(r.arg); break;
+    default: html = pageHome();
+  }
+  const open = [...document.querySelectorAll("#page details[open]")].map((d) => d.querySelector("summary")?.textContent);
+  $("page").innerHTML = html;
+  for (const d of document.querySelectorAll("#page details")) if (open.includes(d.querySelector("summary")?.textContent)) d.open = true;
+}
+// Don't redraw under someone who is typing; redraw when they leave the field.
+let pendingRender = false;
+const typing = () => { const a = document.activeElement; return !!a && $("page").contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== "search"; };
+function softRender() { if (typing()) pendingRender = true; else render(); }
+document.addEventListener("focusout", () => setTimeout(() => { if (pendingRender && !typing()) { pendingRender = false; render(); } }, 0));
+
+// ===================== saving =====================
 let toastTimer = null;
 function toast(msg) { const el = $("toast"); el.textContent = msg; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => (el.hidden = true), 3600); }
 function setSync(text, cls = "") { const el = $("sync"); el.textContent = text; el.className = "sync " + cls; }
 
-// Every change is an operation applied to a fresh copy of todos.md, so edits from the meeting and Slack routines are never overwritten.
+// Every change is applied to a fresh copy of the file, so edits made elsewhere (the meeting and Slack routines) are never overwritten.
 let queue = Promise.resolve(), pending = 0;
-function mutate(op, message, okMsg) {
+function writeFile(path, op, message, okMsg) {
   if (!settings.key) { toast("Open Settings and paste your GitHub key first."); return; }
-  try { op(entries); } catch (e) {}
+  try { const local = op(files[path] ?? null); if (typeof local === "string") { files[path] = local; if (path === settings.path) entries = parseDoc(local); derive(); } } catch (e) {}
   render();
   pending++; setSync("Saving…", "busy");
   queue = queue.then(async () => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const f = await fetchFile();
-        const fresh = parseDoc(f.text);
-        if (op(fresh) === false) throw Object.assign(new Error("gone"), { gone: true });
-        const out = serialize(fresh);
-        const r = await gh(settings, "PUT", { message: "To-Do Desk: " + message, content: textToB64(out), sha: f.sha, branch: settings.branch });
-        sha = r.content.sha; entries = fresh;
+        const f = await getFile(path);
+        const out = op(f.text);
+        if (out === false) throw Object.assign(new Error("gone"), { gone: true });
+        const r = await api(settings, `/contents/${enc(path)}`, "PUT", { message: "To-Do Desk: " + message, content: textToB64(out), branch: settings.branch, ...(f.sha ? { sha: f.sha } : {}) });
+        files[path] = out; shas[path] = r.content.sha; cachePut(r.content.sha, out);
+        if (path === settings.path) entries = parseDoc(out);
+        derive();
         if (okMsg) toast(okMsg);
         return;
       } catch (e) {
-        if (e.status === 409 && attempt < 2) continue;
-        toast(e.gone ? "That to-do was changed somewhere else. Showing the latest list." : explain(e));
-        await reload();
+        if ((e.status === 409 || e.status === 422) && attempt < 2) continue;
+        toast(e.gone ? "That item was changed somewhere else. Showing the latest version." : explain(e));
+        await reload(true);
         return;
       }
     }
-  }).finally(() => { pending--; if (!pending) setSync("Saved"); render(); });
+  }).finally(() => { pending--; if (!pending) setSync("Saved"); softRender(); });
 }
-async function reload() {
+function mutateTodos(op, message, okMsg) {
+  writeFile(settings.path, (text) => { if (text == null) return false; const d = parseDoc(text); if (op(d) === false) return false; return serialize(d); }, message, okMsg);
+}
+async function reload(force) {
   if (!settings.key) { loaded = false; render(); return; }
-  try { const f = await fetchFile(); if (pending) return; entries = parseDoc(f.text); sha = f.sha; loaded = true; setSync("Up to date"); }
+  if (pending && !force) return;
+  try { setSync(loaded ? "Checking…" : "Loading…", "busy"); await loadAll(); loaded = true; setSync("Up to date"); }
   catch (e) { setSync("Not connected", "err"); toast(explain(e)); }
-  render();
+  softRender();
 }
-const short = (s) => (s.length > 60 ? s.slice(0, 57) + "…" : s);
-function findTask(list, key) { return list.find((e) => e.type === "task" && keyOf(e) === key); }
+const findTask = (list, key) => list.find((e) => e.type === "task" && keyOf(e) === key);
 
-// ---------- actions ----------
+// ===================== actions =====================
 function parseQuick(text) {
   let title = text, project = null, priority = null, waiting = null;
   title = title.replace(/(^|\s)#([\w&-]+)/g, (m, sp, tag) => {
     const k = tag.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const hit = projects().find((p) => p.name.toLowerCase().replace(/[^a-z0-9]/g, "").startsWith(k));
+    const hit = D.projects.find((p) => p.name.toLowerCase().replace(/[^a-z0-9]/g, "").startsWith(k));
     if (hit) { project = hit.name; return sp; } return m;
   });
   title = title.replace(/(^|\s)!(high|h|low|l)\b/gi, (m, sp, p) => { priority = p[0].toLowerCase() === "h" ? "high" : "low"; return sp; });
   title = title.replace(/(^|\s)@([\w.-]+)/g, (m, sp, who) => { waiting = who; return sp; });
   return { title: title.replace(/\s+/g, " ").replace(/[\[\]]/g, "").trim(), project, priority, waiting };
 }
-$("addForm").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const p = parseQuick($("addTitle").value);
-  if (!p.title) return;
-  const now = new Date();
-  const fields = { due: $("addDue").value || "", project: p.project || $("addProject").value || "", priority: p.priority || $("addPri").value,
-    waiting: p.waiting || "", status: p.waiting ? "waiting" : "", star: view === "today" && !$("addDue").value ? "yes" : "", created: now.toISOString().replace(/\.\d+Z$/, "Z") };
-  const make = () => ({ type: "task", done: false, title: p.title, fields: { ...fields }, tail: `(added ${ymd(now)})`, notes: [], section: null });
-  mutate((list) => { const t = make(); insertTop(list, sectionFor(t), t); }, "add " + short(p.title), "Added");
-  $("addTitle").value = ""; $("addDue").value = ""; $("addPri").value = "";
+const nowIso = () => new Date().toISOString().replace(/\.\d+Z$/, "Z");
+
+document.addEventListener("submit", (e) => {
+  const f = e.target;
+  if (f.id === "addForm") {
+    e.preventDefault();
+    const p = parseQuick($("addTitle").value);
+    if (!p.title) return;
+    const due = $("addDue").value;
+    const starIt = !due && (route().head !== "todos" || view === "today");
+    const fields = { due: due || "", project: p.project || $("addProject").value || "", priority: p.priority || $("addPri").value,
+      waiting: p.waiting || "", status: p.waiting ? "waiting" : "", star: starIt ? "yes" : "", created: nowIso() };
+    const make = () => ({ type: "task", done: false, title: p.title, fields: { ...fields }, tail: `(added ${todayStr()})`, notes: [], section: null });
+    $("addTitle").value = "";
+    mutateTodos((list) => { const t = make(); insertTop(list, sectionFor(t), t); }, "add " + short(p.title), "Added");
+  } else if (f.id === "newProj") {
+    e.preventDefault();
+    const name = $("newProjName").value.trim().replace(/[·\[\]]/g, "");
+    if (!name) return;
+    mutateTodos((list) => {
+      const names = listedProjects(list); if (names.includes(name)) return;
+      names.push(name);
+      const l = projectsLine(list), text = "Projects: " + names.join(" · ");
+      if (l) l.text = text; else { const i = list.findIndex((x) => x.type === "heading"); list.splice(i < 0 ? list.length : i, 0, { type: "raw", text }, { type: "raw", text: "" }); }
+    }, "add project " + name, "Project added");
+  } else if (f.matches("form[data-edit]")) {
+    e.preventDefault();
+    const key = f.dataset.edit, fd = new FormData(f), status = fd.get("status");
+    openKey = null;
+    mutateTodos((list) => {
+      const t = findTask(list, key); if (!t) return false;
+      t.title = String(fd.get("title")).replace(/[\[\]]/g, "").trim() || t.title;
+      const project = fd.get("project");
+      t.fields.project = project === ADMIN && t.section === ADMIN ? "" : project;
+      t.fields.priority = fd.get("priority"); t.fields.due = fd.get("due") || "";
+      t.fields.waiting = String(fd.get("waiting") || "").replace(/[\[\]]/g, "").trim();
+      t.fields.status = status === "doing" || status === "waiting" ? status : "";
+      const done = status === "done";
+      if (done && !t.done) { t.fields.done = todayStr(); t.fields.star = ""; }
+      if (!done) t.fields.done = "";
+      t.done = done;
+      t.notes = String(fd.get("notes") || "").split("\n").map((s) => s.trimEnd()).filter(Boolean);
+      moveTask(list, t);
+    }, "edit: " + short(String(fd.get("title"))), "Saved");
+  } else if (f.id === "fileEditor") {
+    e.preventDefault();
+    const path = f.dataset.path, text = $("rawText").value.replace(/\r\n/g, "\n");
+    editingPath = null;
+    writeFile(path, () => text, "edit " + path, "Saved");
+  } else if (f.id === "decForm") {
+    e.preventDefault();
+    const text = $("decText").value.replace(/[\[\]]/g, "").trim(); if (!text) return;
+    const project = $("decProject").value;
+    const line = `- ${todayStr()} · ${text}${project ? ` [project:: ${project}]` : ""} [created:: ${nowIso()}]`;
+    $("decText").value = "";
+    writeFile("decisions.md", (cur) => {
+      let s = cur ?? "# Decisions\n\n## Decisions\n";
+      if (!/^## Decisions\s*$/m.test(s)) s = s.trimEnd() + "\n\n## Decisions\n";
+      return s.replace(/^## Decisions[ \t]*\n*/m, "## Decisions\n\n" + line + "\n").replace(/\n{3,}/g, "\n\n");
+    }, "decision: " + short(text), "Decision added");
+  } else if (f.id === "launchAdd") {
+    e.preventDefault();
+    const path = f.dataset.path, title = $("launchItem").value.replace(/[\[\]]/g, "").trim(); if (!title) return;
+    const due = $("launchDue").value;
+    $("launchItem").value = "";
+    writeFile(path, (text) => {
+      if (text == null) return false;
+      const d = parseDoc(text);
+      const t = { type: "task", done: false, title, fields: { due, created: nowIso() }, tail: "", notes: [], section: "Checklist" };
+      const items = d.filter((x) => x.type === "task");
+      if (items.length) d.splice(d.indexOf(items[items.length - 1]) + 1, 0, t); else insertTop(d, "Checklist", t);
+      return serialize(d);
+    }, "launch item: " + short(title), "Added");
+  } else if (f.id === "leadsForm") {
+    e.preventDefault();
+    const fd = new FormData(f), head = D.leads.head;
+    const cells = head.map((h, i) => String(fd.get("c" + i) || "").trim());
+    if (!cells[0]) { toast("Pick the week first."); return; }
+    writeFile("leads/weekly.csv", (text) => {
+      const rows = parseCsv(text || head.join(",") + "\n");
+      const body = rows.slice(1).filter((r) => r[0] !== cells[0]);
+      body.push(cells);
+      body.sort((a, b) => a[0].localeCompare(b[0]));
+      return [rows[0]].concat(body).map((r) => r.map(csvCell).join(",")).join("\n") + "\n";
+    }, "leads week " + cells[0], "Week saved");
+  } else if (f.id === "settings") {
+    e.preventDefault();
+    settings = formSettings();
+    try { localStorage.setItem("todo-desk-settings", JSON.stringify(settings)); } catch (err) { toast("This browser wouldn't save the key. It will work until you close the tab."); }
+    showSettings(false); if (location.hash === "#settings") history.replaceState(null, "", "#home"); reload();
+  }
 });
-$("newProj").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name = $("newProjName").value.trim().replace(/[·\[\]]/g, "");
-  if (!name) return;
-  $("newProjName").value = "";
-  mutate((list) => {
-    const names = listedProjects(list); if (names.includes(name)) return;
-    names.push(name);
-    const l = projectsLine(list), text = "Projects: " + names.join(" · ");
-    if (l) l.text = text;
-    else { const i = list.findIndex((x) => x.type === "heading"); list.splice(i < 0 ? list.length : i, 0, { type: "raw", text }, { type: "raw", text: "" }); }
-  }, "add project " + name, "Project added");
-});
+
 document.addEventListener("click", (e) => {
   const v = e.target.closest("[data-view]");
-  if (v) { view = v.dataset.view; openKey = null; try { localStorage.setItem("todo-desk-view", view); } catch (err) {} render(); return; }
+  if (v) { view = v.dataset.view; openKey = null; try { localStorage.setItem("todo-desk-view", view); } catch (err) {} if (route().head !== "todos") location.hash = "#todos"; else render(); return; }
   const pj = e.target.closest("[data-project]");
   if (pj) { projectFilter = pj.dataset.project || null; openKey = null; render(); return; }
+  const fp = e.target.closest("[data-filter-project]");
+  if (fp) { projectFilter = fp.dataset.filterProject; view = "all"; location.hash = "#todos"; return; }
+  const ef = e.target.closest("[data-editfile]");
+  if (ef) { editingPath = ef.dataset.editfile; render(); return; }
+  if (e.target.id === "cancelEdit") { editingPath = null; render(); return; }
+  const nb = e.target.closest("[data-newbrief]");
+  if (nb) {
+    const name = nb.dataset.newbrief, slug = slugify(name), path = "projects/" + slug + ".md";
+    const tpl = `---\nname: ${name}\nstatus: active\nowner: Kyle Heath\npeople: []\nkeywords: []\ncreated_at: ${nowIso()}\n---\n\n## Goal\n\n\n## Notes\n\n`;
+    files[path] = tpl; derive(); editingPath = path;
+    if (route().arg === slug) render(); else location.hash = "#projects/" + slug;
+    return;
+  }
+  if (e.target.id === "copyReview") {
+    const text = reviewText();
+    if (!navigator.clipboard) { toast("Couldn't copy here. Select the text on the page instead."); return; }
+    navigator.clipboard.writeText(text).then(() => toast("Copied. Paste it into Slack or an email."), () => toast("Couldn't copy. Select the text on the page instead."));
+    return;
+  }
+  const lc = e.target.closest("[data-launch]");
+  if (lc) {
+    const path = lc.dataset.launch, key = lc.dataset.lkey;
+    writeFile(path, (text) => {
+      if (text == null) return false;
+      const d = parseDoc(text); const t = findTask(d, key); if (!t) return false;
+      t.done = !t.done; t.fields.done = t.done ? todayStr() : "";
+      return serialize(d);
+    }, "launch item: " + short(key.replace(/^- \[.\] /, "")));
+    return;
+  }
   const act = e.target.closest("[data-act]");
   if (!act) return;
   const key = act.closest("li.task")?.dataset.key, cur = findTask(entries, key);
   if (!cur) return;
   const a = act.dataset.act;
-  if (a === "open") { openKey = openKey === key ? null : key; armedDelete = null; renderList(); }
-  else if (a === "close") { openKey = null; armedDelete = null; renderList(); }
+  if (a === "open") { openKey = openKey === key ? null : key; armedDelete = null; render(); }
+  else if (a === "close") { openKey = null; armedDelete = null; render(); }
   else if (a === "toggle") {
     const done = !cur.done;
-    mutate((list) => { const t = findTask(list, key); if (!t) return false;
+    mutateTodos((list) => { const t = findTask(list, key); if (!t) return false;
       t.done = done; t.fields.done = done ? todayStr() : ""; if (done) t.fields.star = ""; if (done && t.fields.status) t.fields.status = "";
       moveTask(list, t); }, (done ? "done: " : "reopen: ") + short(cur.title), done ? "Done" : "Reopened");
   } else if (a === "star") {
-    mutate((list) => { const t = findTask(list, key); if (!t) return false; t.fields.star = t.fields.star === "yes" ? "" : "yes"; }, "star: " + short(cur.title));
+    mutateTodos((list) => { const t = findTask(list, key); if (!t) return false; t.fields.star = t.fields.star === "yes" ? "" : "yes"; }, "star: " + short(cur.title));
   } else if (a === "delete") {
-    if (armedDelete !== key) { armedDelete = key; renderList(); return; }
+    if (armedDelete !== key) { armedDelete = key; render(); return; }
     armedDelete = null; openKey = null;
-    mutate((list) => { const t = findTask(list, key); if (!t) return false; list.splice(list.indexOf(t), 1); }, "delete: " + short(cur.title), "Deleted");
+    mutateTodos((list) => { const t = findTask(list, key); if (!t) return false; list.splice(list.indexOf(t), 1); }, "delete: " + short(cur.title), "Deleted");
   }
 });
-document.addEventListener("submit", (e) => {
-  const f = e.target.closest("form[data-edit]");
-  if (!f) return;
-  e.preventDefault();
-  const key = f.dataset.edit, fd = new FormData(f), status = fd.get("status");
-  openKey = null;
-  mutate((list) => {
-    const t = findTask(list, key); if (!t) return false;
-    t.title = String(fd.get("title")).replace(/[\[\]]/g, "").trim() || t.title;
-    const project = fd.get("project");
-    t.fields.project = project === ADMIN && t.section === ADMIN ? "" : project;
-    t.fields.priority = fd.get("priority"); t.fields.due = fd.get("due") || "";
-    t.fields.waiting = String(fd.get("waiting") || "").replace(/[\[\]]/g, "").trim();
-    t.fields.status = status === "doing" || status === "waiting" ? status : "";
-    const done = status === "done";
-    if (done && !t.done) { t.fields.done = todayStr(); t.fields.star = ""; }
-    if (!done) t.fields.done = "";
-    t.done = done;
-    t.notes = String(fd.get("notes") || "").split("\n").map((s) => s.trimEnd()).filter(Boolean);
-    moveTask(list, t);
-  }, "edit: " + short(String(fd.get("title"))), "Saved");
+document.addEventListener("change", (e) => {
+  const s = e.target.closest("select[data-reel]");
+  if (!s) return;
+  const path = s.dataset.reel, status = s.value;
+  s.blur();
+  writeFile(path, (text) => (text == null ? false : setFrontmatter(text, "status", status)), `reel ${status}: ${fileSlug(path)}`, "Status saved");
 });
+let searchTimer = null;
 document.addEventListener("input", (e) => {
-  if (e.target.id !== "search") return;
-  q = e.target.value.trim();
-  const pos = e.target.selectionStart; renderList();
-  const s = $("search"); s.focus(); try { s.setSelectionRange(pos, pos); } catch (err) {}
+  if (e.target.id === "search") {
+    q = e.target.value.trim();
+    const pos = e.target.selectionStart;
+    $("list").innerHTML = todosListHtml();
+    const s = $("search"); s.focus(); try { s.setSelectionRange(pos, pos); } catch (err) {}
+  } else if (e.target.id === "gsearch") {
+    clearTimeout(searchTimer);
+    const v = e.target.value.trim();
+    searchTimer = setTimeout(() => { if (v.length >= 2) location.hash = "#search/" + encodeURIComponent(v); else if (route().head === "search") location.hash = "#home"; }, 250);
+  }
 });
 
-// ---------- settings panel ----------
+// ===================== settings panel =====================
 function showSettings(show) {
   $("settings").hidden = !show;
   if (show) { $("sKey").value = settings.key || ""; $("sOwner").value = settings.owner; $("sRepo").value = settings.repo; $("sBranch").value = settings.branch; $("sPath").value = settings.path; $("sResult").textContent = ""; }
@@ -613,23 +1314,23 @@ $("openSettings").addEventListener("click", () => showSettings($("settings").hid
 $("sClose").addEventListener("click", () => showSettings(false));
 $("sTest").addEventListener("click", async () => {
   const r = $("sResult"); r.className = "result"; r.textContent = "Testing…";
-  try { const f = await fetchFile(formSettings()); const n = parseDoc(f.text).filter((x) => x.type === "task").length; r.className = "result ok"; r.textContent = `Connected. Found ${n} to-dos.`; }
+  try { const s = formSettings(); const f = await getFile(s.path, s); if (f.text == null) throw Object.assign(new Error(), { status: 404 }); const n = parseDoc(f.text).filter((x) => x.type === "task").length; r.className = "result ok"; r.textContent = `Connected. Found ${n} to-dos.`; }
   catch (e) { r.className = "result bad"; r.textContent = explain(e); }
 });
-$("settings").addEventListener("submit", (e) => {
-  e.preventDefault();
-  settings = formSettings();
-  try { localStorage.setItem("todo-desk-settings", JSON.stringify(settings)); } catch (err) { toast("This browser wouldn't save the key. It will work until you close the tab."); }
-  showSettings(false); reload();
-});
 
-// ---------- start ----------
+// ===================== start =====================
+window.addEventListener("hashchange", () => {
+  if (location.hash === "#settings") { showSettings(true); return; }
+  editingPath = null; openKey = null;
+  if (route().head !== "search") $("gsearch").value = "";
+  render(); window.scrollTo(0, 0);
+});
+if (route().head === "search") $("gsearch").value = route().arg;
 render();
 if (!settings.key || location.hash === "#settings") showSettings(true);
 if (settings.key) reload();
-window.addEventListener("hashchange", () => { if (location.hash === "#settings") showSettings(true); });
 window.addEventListener("focus", () => { if (!pending && settings.key) reload(); });
-setInterval(() => { if (!pending && settings.key && !document.hidden && !document.activeElement?.closest?.("form[data-edit]")) reload(); }, 120000);
+setInterval(() => { if (!pending && settings.key && !document.hidden) reload(); }, 120000);
 </script>
 </body>
 </html>
