@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kyle's To-Do Desk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: a project rail on the left, the working list on the right; stacks to one column on phones. */
 :root {
@@ -15,7 +15,7 @@
   --p1: #1F5FBF; --p2: #B5487A; --p3: #2E7D4F; --p4: #A86500; --p5: #6B4FC4; --p6: #2A8A93; --p7: #6B7785;
   --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --body: "Instrument Sans", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --mono: var(--body);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root {
@@ -37,7 +37,7 @@ button { cursor: pointer; }
 header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
 header.top h1 { font-family: var(--display); font-weight: 700; font-size: 30px; letter-spacing: -0.01em; margin: 0; }
 .topright { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.date, .sync { font-family: var(--mono); font-size: 12.5px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.date, .sync { font-size: 14px; color: var(--muted); }
 .sync.busy { color: var(--soon); }
 .sync.err { color: var(--late); }
 .linkbtn { border: 0; background: none; color: var(--accent); padding: 0; font-size: 13.5px; font-weight: 600; }
@@ -60,7 +60,7 @@ header.top h1 { font-family: var(--display); font-weight: 700; font-size: 30px; 
 .btn.danger { color: var(--late); }
 .btn.danger.armed { background: var(--late); color: var(--panel); border-color: var(--late); }
 .hint { font-size: 12.5px; color: var(--faint); }
-.hint code { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.hint code { font-family: var(--body); font-size: inherit; font-weight: 600; color: var(--muted); }
 .settings h2 { font-family: var(--display); font-size: 20px; margin: 0; }
 .settings p { margin: 0; color: var(--muted); max-width: 65ch; }
 .settings .fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -103,7 +103,7 @@ li.task:first-child { border-top: 0; }
 .task.done .ttitle { text-decoration: line-through; color: var(--faint); }
 .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); }
 .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 1px 8px; background: var(--bg); border: 1px solid var(--line); white-space: nowrap; }
-.chip.due { font-family: var(--mono); font-size: 11.5px; }
+.chip.due { font-variant-numeric: tabular-nums; }
 .chip.due.late { color: var(--late); background: var(--late-soft); border-color: transparent; font-weight: 500; }
 .chip.due.soon { color: var(--soon); background: var(--soon-soft); border-color: transparent; }
 .chip.wait { color: var(--p5); }
