@@ -42,18 +42,18 @@ a { color: var(--accent); }
 header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
 header.top h1 { font-family: var(--display); font-weight: 700; font-size: 30px; letter-spacing: -0.01em; margin: 0; display: flex; align-items: center; gap: 10px; }
 header.top h1 img { width: 30px; height: 30px; }
-.topright { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.date, .sync { font-size: 14px; color: var(--muted); }
+.topright { display: flex; gap: 12px; align-items: center; flex-wrap: nowrap; margin-left: auto; }
+.date, .sync { font-size: 14px; color: var(--muted); white-space: nowrap; }
 .sync.busy { color: var(--soon); }
 .sync.err { color: var(--late); }
 .linkbtn { border: 0; background: none; color: var(--accent); padding: 0; font-size: 14px; font-weight: 600; }
 
 .navbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
-nav.tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1 1 520px; min-width: 0; padding-bottom: 2px; }
+nav.tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1 1 100%; min-width: 0; padding-bottom: 2px; }
 nav.tabs a { text-decoration: none; color: var(--muted); padding: 7px 10px; border-radius: 8px; white-space: nowrap; font-weight: 500; }
 nav.tabs a:hover { background: var(--hover); color: var(--ink); }
 nav.tabs a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-.gsearch { flex: 0 1 180px; min-width: 0; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 10px; }
+.gsearch { flex: 0 1 220px; min-width: 0; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 7px 10px; }
 
 .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; text-align: left; display: grid; gap: 2px; }
@@ -191,6 +191,20 @@ table.data th, table.data td { padding: 8px 12px; border-top: 1px solid var(--li
 table.data th { border-top: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
 table.data td.num, table.data th.num { text-align: right; }
 .spark { color: var(--accent); }
+.card .v { font-family: var(--display); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.card .v .of { font-family: var(--body); font-size: 14px; font-weight: 500; color: var(--muted); }
+.card.money { border-color: var(--ok-soft); }
+.cards.wide { grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); align-items: start; }
+.cards.wide .countrow .cl { white-space: normal; }
+.countrow { padding: 0 !important; }
+.countrow a { display: grid; grid-template-columns: minmax(0, 1fr) 90px 28px; gap: 10px; align-items: center; padding: 8px 14px; text-decoration: none; color: var(--ink); }
+.countrow a:hover { background: var(--hover); }
+.countrow a[aria-current="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.countrow .cl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.countrow .cbar { height: 6px; background: var(--hover); border-radius: 999px; overflow: hidden; }
+.countrow .cbar > span { display: block; height: 100%; background: var(--accent); }
+.countrow .cn { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+table.data td.note { white-space: normal; min-width: 220px; color: var(--muted); }
 .trend .v { font-family: var(--display); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
 .empty { background: var(--panel); border: 1px dashed var(--line); border-radius: 12px; padding: 20px; color: var(--muted); text-align: center; }
@@ -208,6 +222,7 @@ table.data td.num, table.data th.num { text-align: right; }
   .fields, .settings .fields { grid-template-columns: minmax(0, 1fr); }
   .edit { padding-left: 12px; }
   .gsearch { flex: 1 1 100%; }
+  .topright { flex-wrap: wrap; margin-left: 0; width: 100%; }
   .ev { grid-template-columns: 70px minmax(0, 1fr); }
   .ev > :last-child { grid-column: 2; justify-self: start; }
 }
@@ -219,6 +234,7 @@ table.data td.num, table.data th.num { text-align: right; }
   <header class="top">
     <h1><img src="favicon.svg" alt="">Kyle's To-Do Desk</h1>
     <div class="topright">
+      <input type="search" class="gsearch" id="gsearch" placeholder="Search everything" aria-label="Search everything">
       <span class="sync" id="sync"></span>
       <span class="date" id="today"></span>
       <button class="linkbtn" id="openSettings" type="button">Settings</button>
@@ -245,7 +261,6 @@ table.data td.num, table.data th.num { text-align: right; }
 
   <div class="navbar">
     <nav class="tabs" id="tabs"></nav>
-    <input type="search" class="gsearch" id="gsearch" placeholder="Search everything" aria-label="Search everything">
   </div>
 
   <main id="page"></main>
@@ -362,18 +377,20 @@ function sectionLines(text, name) {
 }
 const bullets = (lines) => lines.filter((l) => /^\s*- /.test(l) && !/^\s*- \[[ xX]\]/.test(l)).map((l) => l.replace(/^\s*- /, "").trim());
 // sops.md: "## Project" sections, each SOP a "### Title" followed by a line of [owner:: ] [project:: ] [status:: ] fields.
-function parseSops(text) {
-  const out = []; let cur = null;
+function parseEntries(text) {
+  const out = []; let cur = null, section = "";
   for (const line of (text || "").split("\n")) {
     const h = line.match(/^###\s+(.+?)\s*$/);
-    if (h) { cur = { title: h[1], fields: {}, lines: [] }; out.push(cur); continue; }
-    if (/^##\s/.test(line)) { cur = null; continue; }
+    if (h) { cur = { title: h[1], section, fields: {}, lines: [] }; out.push(cur); continue; }
+    const h2 = line.match(/^##\s+(.+?)\s*$/);
+    if (h2) { section = h2[1]; cur = null; continue; }
     if (!cur) continue;
     if (!cur.lines.length && !Object.keys(cur.fields).length && /^\s*\[[a-z_]+:: /i.test(line)) { line.replace(/\[([A-Za-z_]+):: ([^\]]*)\]/g, (m, k, v) => { cur.fields[k.toLowerCase()] = v.trim(); }); continue; }
     cur.lines.push(line);
   }
-  return out.map((s) => ({ title: s.title, owner: s.fields.owner || "", project: s.fields.project || "", status: s.fields.status || "active", body: s.lines.join("\n").trim() }));
+  return out.map((s) => ({ title: s.title, section: s.section, fields: s.fields, owner: s.fields.owner || "", project: s.fields.project || "", status: s.fields.status || "active", body: s.lines.join("\n").trim() }));
 }
+const parseSops = parseEntries;
 function parseCsv(t) {
   const rows = []; let row = [], f = "", q = false;
   for (let i = 0; i < t.length; i++) {
@@ -418,7 +435,8 @@ function explain(e) {
 // ===================== loading the workspace =====================
 // Everything comes from git: the repo tree is listed, then each wanted file is read once per version (cached by its sha).
 const WANT = (p) => p === settings.path || p === "decisions.md" || p === "sops.md" || p === "calendar/upcoming.json" || p === "leads/weekly.csv" ||
-  /^(meetings|slack|projects|people|launches|reels|ai-bryan)\/[^/]+\.md$/.test(p);
+  p === "clients/signups.csv" || p === "revenue/milestones.csv" || p === "revenue/README.md" || p === "partners.md" ||
+  /^(meetings|slack|projects|people|launches|reels|ai-bryan|products)\/[^/]+\.md$/.test(p);
 let files = {}, shas = {}, loaded = false, entries = [];
 function cacheGet(sha) { try { return localStorage.getItem("blob:" + sha); } catch (e) { return null; } }
 function cachePut(sha, text) { try { if (text.length < 400000) localStorage.setItem("blob:" + sha, text); } catch (e) {} }
@@ -442,7 +460,7 @@ async function loadAll() {
 }
 
 // ===================== derived data =====================
-let D = { projects: [], people: [], docs: [], decisions: [], launches: [], reels: [], sops: [], events: [], leads: { head: [], rows: [] } };
+let D = { projects: [], people: [], docs: [], decisions: [], launches: [], reels: [], sops: [], events: [], leads: { head: [], rows: [] }, products: [], clients: { head: [], rows: [] }, revenue: [], partners: [] };
 const slugify = (s) => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const fileSlug = (p) => p.split("/").pop().replace(/\.md$/, "");
 function derive() {
@@ -504,6 +522,17 @@ function derive() {
   // Leads numbers.
   const rows = parseCsv(files["leads/weekly.csv"] || "");
   D.leads = { head: rows[0] || [], rows: rows.slice(1).sort((a, b) => (b[0] || "").localeCompare(a[0] || "")) };
+  // Products, clients, revenue and partners.
+  D.products = Object.keys(files).filter((p) => /^products\/[^/]+\.md$/.test(p) && !/README/i.test(p)).map((p) => {
+    const { meta, body } = frontmatter(files[p]);
+    return { path: p, slug: fileSlug(p), name: meta.name || fileSlug(p), meta, body, kws: Array.isArray(meta.keywords) ? meta.keywords : [] };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+  const objs = (text) => { const r = parseCsv(text || ""); const head = r[0] || []; return { head, rows: r.slice(1).map((x) => Object.fromEntries(head.map((h, i) => [h, (x[i] || "").trim()]))) }; };
+  D.clients = objs(files["clients/signups.csv"]);
+  D.clients.rows.forEach((r, i) => { r.i = i; r.lost = /cancel|refund/i.test(r.term); });
+  D.revenue = objs(files["revenue/milestones.csv"]).rows.map((r) => ({ ...r, amount: r.amount === "" ? NaN : Number(r.amount), goal: r.goal === "" ? NaN : Number(r.goal) }));
+  D.yearGoal = (() => { const m = (files["revenue/README.md"] || "").match(/Year goal:\s*\$([\d.,]+)\s*(million|k)?/i); if (!m) return NaN; const n = Number(m[1].replace(/,/g, "")); return /million/i.test(m[2] || "") ? n * 1e6 : /k/i.test(m[2] || "") ? n * 1e3 : n; })();
+  D.partners = parseEntries(files["partners.md"]).map((x) => ({ ...x, type: x.fields.type || "", status: x.fields.status || "active" }));
 }
 function guessProject(text) {
   const l = text.toLowerCase();
@@ -554,6 +583,16 @@ function personChip(name) {
   const p = personFor(name);
   return p ? `<a class="chip" href="#people/${esc(p.slug)}">${esc(p.name)}</a>` : `<span class="chip">${esc(name)}</span>`;
 }
+// Links between workspace files open the matching hub page when there is one.
+function hubLink(p) {
+  const m = p.match(/^(products|projects|people|launches)\/([^/]+)\.md$/);
+  if (m && !/README/i.test(m[2])) return "#" + m[1] + "/" + m[2];
+  if (p === "partners.md") return "#partners";
+  if (p === "sops.md") return "#sops";
+  if (p === "decisions.md") return "#decisions";
+  if (/^(clients|revenue)\//.test(p)) return "#sales";
+  return "";
+}
 function renderMd(text, fromPath) {
   const html = window.marked ? marked.parse(text, { gfm: true }) : "<pre style=\"white-space:pre-wrap\">" + esc(text) + "</pre>";
   const box = document.createElement("div");
@@ -562,8 +601,9 @@ function renderMd(text, fromPath) {
     const href = a.getAttribute("href");
     if (/^https?:/.test(href)) { a.target = "_blank"; a.rel = "noopener"; continue; }
     if (href.startsWith("#") || /^[a-z]+:/i.test(href)) continue;
-    const p = resolvePath(fromPath || "", href);
-    if (files[p] != null) a.setAttribute("href", docLink(p));
+    const p = resolvePath(fromPath || "", href), hub = hubLink(p);
+    if (hub) a.setAttribute("href", hub);
+    else if (files[p] != null) a.setAttribute("href", docLink(p));
     else { a.setAttribute("href", `https://github.com/${settings.owner}/${settings.repo}/blob/${settings.branch}/${enc(p)}`); a.target = "_blank"; a.rel = "noopener"; }
   }
   for (const h of box.querySelectorAll("h2")) {
@@ -736,7 +776,7 @@ function pageTodos() {
 }
 
 // ===================== pages =====================
-const TABS = [["home", "Home"], ["todos", "To-dos"], ["projects", "Projects"], ["people", "People"], ["library", "Meetings & Slack"], ["sops", "SOPs"], ["decisions", "Decisions"], ["launches", "Launches"], ["reels", "Reels"], ["leads", "Leads"], ["review", "Review"]];
+const TABS = [["home", "Home"], ["todos", "To-dos"], ["projects", "Projects"], ["products", "Products"], ["sales", "Sales"], ["people", "People"], ["partners", "Partners"], ["library", "Meetings & Slack"], ["sops", "SOPs"], ["decisions", "Decisions"], ["launches", "Launches"], ["reels", "Reels"], ["leads", "Leads"], ["review", "Review"]];
 let editingPath = null;
 function route() {
   let h = location.hash.replace(/^#/, "");
@@ -782,6 +822,7 @@ function pageHome() {
   return statsHtml() + addFormHtml() + `<div class="cols">
     <div class="stack">${todo}</div>
     <div class="stack">
+      ${revenueCard()}
       <div class="group"><h3 class="st">Today's meetings (ET)</h3>${eventsHtml(todays) || `<div class="empty">No more meetings today.</div>`}</div>
       ${later.length ? `<div class="group"><h3 class="st">Coming up</h3>${eventsHtml(later, true)}</div>` : ""}
       ${D.calendarUpdated ? `<div class="hint">Calendar updated ${esc(new Date(D.calendarUpdated).toLocaleString(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }))}</div>` : ""}
@@ -818,9 +859,11 @@ function pageProject(slug) {
   const docs = projectDocs(p);
   const reels = /reel/i.test(p.name) ? D.reels.slice(0, 8) : [];
   const people = Array.isArray(p.meta.people) ? p.meta.people : [];
+  const products = D.products.filter((x) => x.meta.project === p.name);
+  const partners = D.partners.filter((x) => x.project === p.name);
   return `<a class="back" href="#projects">← Projects</a>
   <div class="pagehead"><div><h2 class="pt"><span class="dot" style="background:var(--${p.color});width:12px;height:12px"></span>${esc(p.name)}</h2>
-    <div class="meta" style="margin-top:6px">${p.meta.status ? `<span class="chip okc">${esc(p.meta.status)}</span>` : ""}${p.meta.date ? `<span class="chip">${esc(fmtDay(p.meta.date))}</span>` : ""}${people.map(personChip).join("")}</div></div>
+    <div class="meta" style="margin-top:6px">${p.meta.status ? `<span class="chip okc">${esc(p.meta.status)}</span>` : ""}${p.meta.date ? `<span class="chip">${esc(fmtDay(p.meta.date))}</span>` : ""}${people.map(personChip).join("")}${products.map((x) => productChip(x.name)).join("")}</div></div>
     <div class="actions"><button class="btn small" data-filter-project="${esc(p.name)}">See in To-dos</button>${p.path && files[p.path] != null ? `<button class="btn small" data-editfile="${esc(p.path)}">Edit brief</button>` : `<button class="btn small primary" data-newbrief="${esc(p.name)}">Write a brief</button>`}</div></div>
   <div class="cols">
     <div class="stack">
@@ -831,6 +874,7 @@ function pageProject(slug) {
     </div>
     <div class="stack">
       ${launches.length ? `<div class="group"><h3 class="st">Launch</h3>${launches.map(launchCard).join("")}</div>` : ""}
+      ${partners.length ? `<div class="group"><h3 class="st">Partners<span class="ct">${partners.length}</span></h3>${partnersHtml(partners)}</div>` : ""}
       <div class="group"><h3 class="st">Decisions<span class="ct">${decisions.length}</span></h3>${decisions.length ? `<ul class="rows">${decisions.map(decisionRow).join("")}</ul>` : `<div class="empty">No decisions recorded yet.</div>`}</div>
       <div class="group"><h3 class="st">Meetings and Slack<span class="ct">${docs.length}</span></h3>${docs.length ? `<ul class="rows">${docs.map(({ d, snip }) => `<li><a class="rt" href="${docLink(d.path)}">${esc(d.title)}</a><span class="rm">${esc(d.when || fmtDay(d.date))}</span>${snip ? `<span class="rd">${snip}</span>` : ""}</li>`).join("")}</ul>` : `<div class="empty">Nothing mentions this project yet.</div>`}</div>
     </div>
@@ -838,14 +882,17 @@ function pageProject(slug) {
 }
 
 function personMatches(person, name) { const p = personFor(name); return !!p && p.slug === person.slug; }
+const TEAM_ORDER = ["Leadership", "Marketing", "Leads", "Operations", "Success Team", "Agency", "Author Ad School", "Author Support", "DFY Publishing"];
+const managed = (p) => D.clients.rows.filter((r) => !r.lost && r.account_manager && personMatches(p, r.account_manager));
 function pagePeople() {
-  return `<div class="pagehead"><h2 class="pt">People</h2></div><div class="cards">${D.people.map((p) => {
+  const teams = [...new Set(D.people.map((p) => p.meta.team || ""))].sort((a, b) => !a ? 1 : !b ? -1 : (((TEAM_ORDER.indexOf(a) + 1) || 99) - ((TEAM_ORDER.indexOf(b) + 1) || 99)) || a.localeCompare(b));
+  return `<div class="pagehead"><h2 class="pt">People</h2><span class="sub">Grouped by team</span></div>${teams.map((team) => `<div class="group"><h3 class="st">${esc(team || "Team not recorded")}<span class="ct">${D.people.filter((p) => (p.meta.team || "") === team).length}</span></h3><div class="cards">${D.people.filter((p) => (p.meta.team || "") === team).map((p) => {
     const waiting = openTasks().filter((t) => t.waiting && personMatches(p, t.waiting)).length;
     const last = D.docs.find((d) => d.attendees.some((a) => personMatches(p, a)));
     const next = D.events.find((e) => new Date(e.end) > new Date() && (e.attendees || []).some((a) => personMatches(p, a)));
     return `<a class="card" href="#people/${esc(p.slug)}"><span class="t">${esc(p.name)}</span><span class="d">${esc(p.meta.role || "Role not recorded yet.")}</span>
-      <span class="meta">${waiting ? `<span class="chip wait">You're waiting on ${waiting}</span>` : ""}${next ? `<span class="chip">Next: ${esc(next.title)}, ${esc(new Date(next.start).toLocaleDateString("en-US", { timeZone: TZ, weekday: "short" }))}</span>` : last ? `<span class="chip">Last met ${esc(fmtDay(last.date))}</span>` : ""}</span></a>`;
-  }).join("")}</div>`;
+      <span class="meta">${waiting ? `<span class="chip wait">You're waiting on ${waiting}</span>` : ""}${managed(p).length ? `<span class="chip">${managed(p).length} client${managed(p).length === 1 ? "" : "s"}</span>` : ""}${next ? `<span class="chip">Next: ${esc(next.title)}, ${esc(new Date(next.start).toLocaleDateString("en-US", { timeZone: TZ, weekday: "short" }))}</span>` : last ? `<span class="chip">Last met ${esc(fmtDay(last.date))}</span>` : ""}</span></a>`;
+  }).join("")}</div></div>`).join("")}`;
 }
 function pagePerson(slug) {
   const p = D.people.find((x) => x.slug === slug);
@@ -858,11 +905,14 @@ function pagePerson(slug) {
   const upcoming = D.events.filter((e) => new Date(e.end) > new Date() && (e.attendees || []).some((a) => personMatches(p, a)));
   const projects = D.projects.filter((x) => Array.isArray(x.meta.people) && x.meta.people.some((n) => personMatches(p, n)));
   const sops = D.sops.filter((s) => s.owner && personMatches(p, s.owner));
+  const clients = newestFirst(managed(p));
+  const products = D.products.filter((x) => (x.meta.owner && personMatches(p, x.meta.owner)) || (Array.isArray(x.meta.people) && x.meta.people.some((n) => personMatches(p, n))));
+  const partners = D.partners.filter((x) => x.owner && personMatches(p, x.owner));
   const profile = p.meta.profile && files[p.meta.profile];
   const first = p.name.split(" ")[0];
   return `<a class="back" href="#people">← People</a>
   <div class="pagehead"><div><h2 class="pt">${esc(p.name)}</h2><div class="sub">${esc(p.meta.role || "Role not recorded yet.")}</div>
-    <div class="meta" style="margin-top:6px">${projects.map((x) => projectChip(x.name)).join("")}</div></div>
+    <div class="meta" style="margin-top:6px">${p.meta.team ? `<span class="chip doing">${esc(p.meta.team)}</span>` : ""}${projects.map((x) => projectChip(x.name)).join("")}${products.map((x) => productChip(x.name)).join("")}</div></div>
     <div class="actions"><button class="btn small" data-editfile="${esc(p.path)}">Edit notes</button></div></div>
   <div class="cols">
     <div class="stack">
@@ -877,6 +927,8 @@ function pagePerson(slug) {
       ${profile ? `<details class="panel md"><summary><strong>How ${esc(first)} thinks</strong> (read before a conversation)</summary>${renderMd(frontmatter(profile).body, p.meta.profile)}</details>` : ""}
     </div>
     <div class="stack">
+      ${clients.length ? `<div class="group"><h3 class="st">Clients ${esc(first)} manages<span class="ct">${clients.length}</span></h3><ul class="rows">${clients.map((r) => `<li><span><strong>${esc(r.client)}</strong> · ${productChip(r.product)}</span><span class="rm">Signed up ${esc(dayLabel(r))}${r.term ? " · " + esc(r.term) : ""}</span></li>`).join("")}</ul></div>` : ""}
+      ${partners.length ? `<div class="group"><h3 class="st">Partners ${esc(first)} owns<span class="ct">${partners.length}</span></h3>${partnersHtml(partners)}</div>` : ""}
       <div class="group"><h3 class="st">Meetings and Slack<span class="ct">${met.length}</span></h3>${met.length ? `<ul class="rows">${met.map(docRow).join("")}</ul>` : `<div class="empty">No meetings recorded yet.</div>`}</div>
     </div>
   </div>`;
@@ -994,6 +1046,7 @@ function reviewData() {
     next: o.filter((t) => t.due && t.due >= today && t.due <= weekOut).sort((a, b) => a.due.localeCompare(b.due)),
     waiting: o.filter((t) => t.status === "waiting"),
     decisions: D.decisions.filter((d) => d.date >= weekAgo),
+    clients: newestFirst(D.clients.rows.filter((c) => c.date >= weekAgo)),
     meetings: D.docs.filter((d) => d.date >= weekAgo),
     launches: D.launches.filter((l) => l.date && etDay(l.date) >= today && etDay(l.date) <= ymd(new Date(Date.now() + 14 * 86400000))),
   };
@@ -1006,6 +1059,7 @@ function reviewText() {
   sec("Coming up", r.next, (t) => `${t.title} (${fmtDue(t.due)})`);
   sec("Waiting on others", r.waiting, (t) => `${t.title}${t.waiting ? " (" + t.waiting + ")" : ""}`);
   sec("Launches", r.launches, (l) => `${l.name}: ${fmtDay(etDay(l.date))}, ${l.items.filter((i) => i.done).length} of ${l.items.length} items done`);
+  sec("New clients", r.clients, (c) => `${c.client}: ${c.product}${c.lost ? " (" + c.term + ")" : ""}`);
   sec("Decisions", r.decisions, (d) => d.text);
   return lines.join("\n").trim();
 }
@@ -1020,9 +1074,174 @@ function pageReview() {
   </div><div class="stack">
     ${r.launches.length ? `<div class="group"><h3 class="st">Launches in the next 2 weeks</h3>${r.launches.map(launchCard).join("")}</div>` : ""}
     ${list("Waiting on others", r.waiting, (t) => `<span>${esc(t.title)}</span><span class="rm">${esc(t.waiting || "Someone")}</span>`, "Nothing waiting.")}
+    ${list("New clients this week", r.clients, (c) => `<span><strong>${esc(c.client)}</strong> · ${productChip(c.product)}${c.lost ? ` <span class="chip late">${esc(c.term)}</span>` : ""}</span><span class="rm">${esc(dayLabel(c))}${c.account_manager ? " · " + esc(c.account_manager) : ""}</span>`, "No sign-ups recorded this week.")}
     ${list("Decisions this week", r.decisions, (d) => `<span>${esc(d.text)}</span><span class="rm">${esc(fmtDay(d.date))}</span>`, "No decisions recorded.")}
     ${list("Meetings and Slack this week", r.meetings, (d) => `<a class="rt" href="${docLink(d.path)}">${esc(d.title)}</a><span class="rm">${esc(fmtDay(d.date))}</span>`, "None recorded.")}
   </div></div>`;
+}
+
+// ===================== products, sales, partners =====================
+const money = (n) => (Number.isFinite(n) ? "$" + Math.round(n).toLocaleString("en-US") : "–");
+function productFor(name) {
+  const l = (name || "").toLowerCase().trim(); if (!l) return null;
+  return D.products.find((p) => p.name.toLowerCase() === l || p.slug === slugify(name) || (Array.isArray(p.meta.aliases) && p.meta.aliases.some((a) => a.toLowerCase() === l)))
+    || D.products.find((p) => p.name.toLowerCase().startsWith(l + " ")) || null;
+}
+function productChip(name) {
+  const p = productFor(name);
+  return p ? `<a class="chip" href="#products/${esc(p.slug)}">${esc(short(p.name, 40))}</a>` : name ? `<span class="chip">${esc(name)}</span>` : "";
+}
+const productClients = (p) => D.clients.rows.filter((r) => productFor(r.product) === p);
+function docsFor(kws) {
+  if (!kws.length) return [];
+  return D.docs.filter((d) => kws.some((k) => d.lower.includes(k.toLowerCase()))).map((d) => ({ d, snip: snippet(frontmatter(d.text).body, kws) }));
+}
+const docHits = (docs, empty) => docs.length ? `<ul class="rows">${docs.map(({ d, snip }) => `<li><a class="rt" href="${docLink(d.path)}">${esc(d.title)}</a><span class="rm">${esc(d.when || fmtDay(d.date))}</span>${snip ? `<span class="rd">${snip}</span>` : ""}</li>`).join("")}</ul>` : `<div class="empty">${empty}</div>`;
+const dayLabel = (r) => (r.date ? (r.date_approx === "yes" ? "~" : "") + fmtDay(r.date) : "");
+
+// Revenue: the current goal period is the one with the latest goal on record.
+function periodEnd(period) {
+  const m = (period || "").match(/([A-Za-z]{3})[a-z]*(?:\s*[-–]\s*([A-Za-z]{3})[a-z]*)?\s+(\d{4})/); if (!m) return null;
+  const mon = (x) => ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].indexOf(x.toLowerCase());
+  const last = mon(m[2] || m[1]); return last < 0 ? null : ymd(new Date(Number(m[3]), last + 1, 0));
+}
+function goalPeriods() {
+  const names = [];
+  for (const r of D.revenue.slice().sort((a, b) => a.date.localeCompare(b.date))) if (Number.isFinite(r.goal) && r.goal > 0 && !names.includes(r.period)) names.push(r.period);
+  return names.map((period) => {
+    const rows = D.revenue.filter((r) => r.period === period).sort((a, b) => a.date.localeCompare(b.date));
+    const hits = rows.filter((r) => Number.isFinite(r.amount));
+    const goal = rows.filter((r) => Number.isFinite(r.goal)).pop().goal;
+    const amount = hits.length ? Math.max(...hits.map((r) => r.amount)) : 0;
+    const end = periodEnd(period);
+    return { period, goal, amount, last: hits[hits.length - 1] || null, hits, end, final: rows.some((r) => r.kind === "period total") || (end && end < todayStr()) };
+  });
+}
+function revenueCard() {
+  const r = goalPeriods().pop(); if (!r) return "";
+  const pct = Math.min(100, Math.round((r.amount / r.goal) * 100)), left = r.goal - r.amount;
+  const days = r.end ? daysFromToday(r.end) : null;
+  return `<a class="card money" href="#sales"><span class="d">${esc(r.period)} revenue goal</span>
+    <span class="v">${money(r.amount)} <span class="of">of ${money(r.goal)}</span></span>
+    <span class="bar"><span style="width:${pct}%"></span></span>
+    <span class="d">${pct}%${left > 0 ? ` · ${money(left)} to go${days != null && days >= 0 ? `, ${days} day${days === 1 ? "" : "s"} left` : ""}` : " · goal hit"}</span>
+    ${r.last ? `<span class="rm hint">Last update ${esc(dayLabel(r.last))}${Number.isFinite(D.yearGoal) ? ` · Year goal ${esc(money(D.yearGoal))}` : ""}</span>` : ""}</a>`;
+}
+// Group sign-ups by product, account manager or source, folding spellings of the same person or product together.
+function keyVal(r, key) {
+  const v = r[key] || ""; if (!v) return "Not recorded";
+  if (key === "account_manager") { const p = personFor(v.replace(/\s*\(.*\)\s*/, "")); return p ? p.name : v; }
+  if (key === "product") { const p = productFor(v); return p ? p.name : v; }
+  return v;
+}
+function countBy(list, key) {
+  const m = {};
+  for (const r of list) { const k = keyVal(r, key); m[k] = (m[k] || 0) + 1; }
+  return Object.entries(m).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+function breakdown(title, key, list, filter) {
+  const rows = countBy(list, key), max = rows[0] ? rows[0][1] : 1;
+  return `<div class="group"><h3 class="st">${title}</h3><ul class="rows">${rows.map(([k, n]) => `<li class="countrow"><a href="#sales/${key}:${encodeURIComponent(k)}" ${filter && filter.key === key && filter.val === k ? 'aria-current="true"' : ""}><span class="cl">${esc(k)}</span><span class="cbar"><span style="width:${Math.round((n / max) * 100)}%"></span></span><span class="cn">${n}</span></a></li>`).join("")}</ul></div>`;
+}
+function signupTable(list, cols = ["date", "client", "product", "term", "account_manager", "source", "note"]) {
+  const label = { date: "Date", client: "Client", product: "Product", term: "Term", account_manager: "Account manager", source: "Source", note: "Note" };
+  const cell = (r, c) => c === "date" ? esc(dayLabel(r)) : c === "product" ? productChip(r.product) : c === "account_manager" ? (r.account_manager ? personChip(r.account_manager) : "") : c === "term" && r.lost ? `<span class="chip late">${esc(r.term)}</span>` : esc(r[c] || "");
+  return `<div class="tablewrap"><table class="data"><thead><tr>${cols.map((c) => `<th>${label[c]}</th>`).join("")}</tr></thead><tbody>${list.map((r) => `<tr>${cols.map((c) => `<td class="${c === "note" ? "note" : ""}">${cell(r, c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+const newestFirst = (list) => list.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.i - a.i);
+function pageSales(arg) {
+  const all = D.clients.rows, signups = all.filter((r) => !r.lost);
+  const i = (arg || "").indexOf(":");
+  const filter = i > 0 ? { key: arg.slice(0, i), val: arg.slice(i + 1) } : null;
+  const shown = newestFirst(filter ? all.filter((r) => keyVal(r, filter.key) === filter.val) : all);
+  const d30 = ymd(new Date(Date.now() - 30 * 86400000)), d7 = ymd(new Date(Date.now() - 7 * 86400000));
+  const periods = goalPeriods(), cur = periods[periods.length - 1];
+  const csvProducts = [...new Set(all.map((r) => r.product).filter(Boolean))];
+  const productOpts = csvProducts.concat(D.products.filter((p) => !csvProducts.some((n) => productFor(n) === p)).map((p) => p.name)).sort((a, b) => all.filter((r) => r.product === b).length - all.filter((r) => r.product === a).length || a.localeCompare(b));
+  const fLabel = filter ? { product: "Product", account_manager: "Account manager", source: "Source" }[filter.key] || "" : "";
+  return `<div class="pagehead"><div><h2 class="pt">Sales</h2><span class="sub">Revenue from Charlene's posts and every client sign-up, from revenue/ and clients/</span></div></div>
+  <div class="cards">
+    ${revenueCard()}
+    <a class="card stat-card" href="#sales"><span class="d">Sign-ups in the last 30 days</span><span class="v">${signups.filter((r) => r.date >= d30).length}</span><span class="d">${signups.filter((r) => r.date >= d7).length} in the last 7 days</span></a>
+    <div class="card stat-card"><span class="d">All sign-ups on record</span><span class="v">${signups.length}</span><span class="d">${all.length - signups.length} cancelled or refunded</span></div>
+  </div>
+  ${cur ? `<form class="panel formrow" id="revForm" data-period="${esc(cur.period)}" data-goal="${esc(String(cur.goal))}" autocomplete="off"><label for="revAmt"><strong>${esc(cur.period)} total so far</strong></label><input type="text" id="revAmt" inputmode="decimal" placeholder="e.g. 275000" style="flex:0 1 180px"><button class="btn primary" type="submit">Save milestone</button><span class="hint">Adds today's row to revenue/milestones.csv.</span></form>` : ""}
+  <div class="cards wide">
+      ${breakdown("By product", "product", signups, filter)}
+      ${breakdown("By account manager", "account_manager", signups, filter)}
+      ${breakdown("By source", "source", signups, filter)}
+  </div>
+  <div class="stack">
+      <div class="group"><h3 class="st">${filter ? `${esc(fLabel)}: ${esc(filter.val)}<a class="chip" href="#sales">Show all</a>` : "Sign-ups, newest first"}<span class="ct">${shown.length}</span></h3>${shown.length ? signupTable(shown) : `<div class="empty">No sign-ups recorded yet.</div>`}</div>
+      <details class="panel"><summary><strong>Add a sign-up</strong></summary>
+        <form id="clientForm" autocomplete="off" style="display:grid;gap:10px;margin-top:10px"><div class="fields">
+          <label class="field">Date<input type="date" name="date" value="${todayStr()}"></label>
+          <label class="field">Client<input name="client" required></label>
+          <label class="field">Product<select name="product">${productOpts.map((n) => `<option>${esc(n)}</option>`).join("")}</select></label>
+          <label class="field">Term<input name="term" placeholder="e.g. 4 months, renewal, cancelled"></label>
+          <label class="field">Account manager<input name="account_manager" list="peopleList"></label>
+          <label class="field">Source<input name="source" placeholder="e.g. K-Lytics webinar"></label>
+          <label class="field wide">Note<input name="note"></label>
+        </div><div class="actions"><button class="btn primary" type="submit">Add sign-up</button></div></form>
+        <datalist id="peopleList">${D.people.map((p) => `<option value="${esc(p.name)}">`).join("")}</datalist></details>
+  </div>
+  <div class="cards wide">
+      ${periods.length ? `<div class="group"><h3 class="st">Goal periods</h3><div class="tablewrap"><table class="data"><thead><tr><th>Period</th><th class="num">Goal</th><th class="num">Reached</th><th></th></tr></thead><tbody>${periods.slice().reverse().map((p) => `<tr><td>${esc(p.period)}</td><td class="num">${money(p.goal)}</td><td class="num">${money(p.amount)}</td><td>${p.amount >= p.goal ? `<span class="chip okc">Hit</span>` : p.final ? `<span class="chip late">Missed</span>` : `<span class="chip">${Math.round((p.amount / p.goal) * 100)}%</span>`}</td></tr>`).join("")}</tbody></table></div></div>` : ""}
+      ${D.revenue.some((r) => r.kind === "month total") ? `<div class="group"><h3 class="st">Month totals</h3><ul class="rows">${D.revenue.filter((r) => r.kind === "month total").reverse().map((r) => `<li><span><strong>${esc(r.period)}</strong> · ${money(r.amount)}</span>${r.note ? `<span class="rd">${esc(r.note)}</span>` : ""}</li>`).join("")}</ul></div>` : ""}
+    </div>
+  </div>`;
+}
+
+const TYPE_ORDER = ["service", "coaching", "course", "community", "low-ticket", "show"];
+function pageProducts() {
+  const ladder = ((files["products/README.md"] || "").match(/^The ladder.*$/m) || [""])[0];
+  const types = [...new Set(D.products.map((p) => p.meta.type || "other"))].sort((a, b) => ((TYPE_ORDER.indexOf(a) + 1) || 99) - ((TYPE_ORDER.indexOf(b) + 1) || 99));
+  const card = (p) => {
+    const n = productClients(p).filter((r) => !r.lost).length;
+    return `<a class="card" href="#products/${esc(p.slug)}"><span class="t">${esc(p.name)}</span><span class="d">${esc(short(p.meta.price || "Price not seen yet.", 150))}</span>
+      <span class="meta">${p.meta.status && p.meta.status !== "active" ? `<span class="chip soon">${esc(cap(p.meta.status))}</span>` : ""}${p.meta.owner ? `<span class="chip">${esc(p.meta.owner)}</span>` : ""}${n ? `<span class="chip okc">${n} sign-up${n === 1 ? "" : "s"}</span>` : ""}</span></a>`;
+  };
+  return `<div class="pagehead"><div><h2 class="pt">Products</h2><span class="sub">Every BPF offer, from products/</span></div></div>
+    ${ladder ? `<div class="md hint">${renderMd(ladder, "products/README.md")}</div>` : ""}
+    ${D.products.length ? types.map((t) => `<div class="group"><h3 class="st">${esc(cap(t))}<span class="ct">${D.products.filter((p) => (p.meta.type || "other") === t).length}</span></h3><div class="cards">${D.products.filter((p) => (p.meta.type || "other") === t).map(card).join("")}</div></div>`).join("") : `<div class="empty">No products yet.</div>`}`;
+}
+function pageProduct(slug) {
+  const p = D.products.find((x) => x.slug === slug);
+  if (!p) return `<a class="back" href="#products">← Products</a><div class="empty">No product called that.</div>`;
+  if (editingPath === p.path) return editorHtml(p.path, "#products/" + p.slug);
+  const clients = newestFirst(productClients(p));
+  const people = Array.isArray(p.meta.people) ? p.meta.people : [];
+  const sops = D.sops.filter((s) => p.meta.project && s.project === p.meta.project);
+  const partners = D.partners.filter((x) => p.kws.concat([p.name]).some((k) => (x.title + " " + x.body).toLowerCase().includes(k.toLowerCase())));
+  return `<a class="back" href="#products">← Products</a>
+  <div class="pagehead"><div><h2 class="pt">${esc(p.name)}</h2>${p.meta.price ? `<div class="sub">${esc(p.meta.price)}</div>` : ""}
+    <div class="meta" style="margin-top:6px">${p.meta.type ? `<span class="chip">${esc(cap(p.meta.type))}</span>` : ""}${p.meta.status ? `<span class="chip ${p.meta.status === "active" ? "okc" : "soon"}">${esc(cap(p.meta.status))}</span>` : ""}${projectChip(p.meta.project)}${p.meta.owner ? personChip(p.meta.owner) : ""}</div></div>
+    <div class="actions"><button class="btn small" data-editfile="${esc(p.path)}">Edit</button></div></div>
+  <div class="cols">
+    <div class="stack">
+      <div class="panel md">${renderMd(p.body, p.path)}</div>
+      ${people.length ? `<div class="group"><h3 class="st">People</h3><div class="meta">${people.map(personChip).join("")}</div></div>` : ""}
+      ${sops.length ? `<div class="group"><h3 class="st">SOPs<span class="ct">${sops.length}</span></h3>${sopsHtml(sops)}</div>` : ""}
+    </div>
+    <div class="stack">
+      <div class="group"><h3 class="st">Sign-ups<span class="ct">${clients.length}</span></h3>${clients.length ? `<ul class="rows">${clients.map((r) => `<li><span><strong>${esc(r.client)}</strong>${r.lost ? ` <span class="chip late">${esc(r.term)}</span>` : r.term ? ` · ${esc(r.term)}` : ""}</span><span class="rm">${esc(dayLabel(r))}${r.account_manager ? " · " + esc(r.account_manager) : ""}${r.source ? " · " + esc(r.source) : ""}</span></li>`).join("")}</ul>` : `<div class="empty">No sign-ups recorded yet.</div>`}</div>
+      ${partners.length ? `<div class="group"><h3 class="st">Partners<span class="ct">${partners.length}</span></h3><ul class="rows">${partners.map((x) => `<li><a class="rt" href="#partners">${esc(x.title)}</a><span class="rm">${esc(cap(x.type || "partner"))}</span></li>`).join("")}</ul></div>` : ""}
+      <div class="group"><h3 class="st">Meetings and Slack</h3>${docHits(docsFor(p.kws), "Nothing mentions this product yet.")}</div>
+    </div>
+  </div>`;
+}
+
+const PARTNER_STATUSES = ["active", "idea", "past", "declined"];
+function partnersHtml(list) {
+  return `<div class="panel" style="padding:0;gap:0">${list.map((x) => `<details class="sop"><summary>${esc(x.title)}${x.type ? `<span class="chip">${esc(cap(x.type))}</span>` : ""}${x.status !== "active" ? `<span class="chip ${x.status === "idea" ? "soon" : ""}">${esc(cap(x.status))}</span>` : ""}${x.owner ? personChip(x.owner) : ""}</summary><div class="md">${renderMd(x.body, "partners.md")}</div>${x.project ? `<div class="meta">${projectChip(x.project)}</div>` : ""}</details>`).join("")}</div>`;
+}
+function pagePartners(arg) {
+  const st = PARTNER_STATUSES.includes(arg) ? arg : "";
+  const list = D.partners.filter((x) => !st || x.status === st);
+  const sections = [...new Set(list.map((x) => x.section || "Other"))];
+  return `<div class="pagehead"><div><h2 class="pt">Partners</h2><span class="sub">Affiliates, vendors, cross-promo partners and events, from partners.md</span></div>
+    <div class="meta"><a class="chip ${!st ? "doing" : ""}" href="#partners">All ${D.partners.length}</a>${PARTNER_STATUSES.filter((s) => D.partners.some((x) => x.status === s)).map((s) => `<a class="chip ${st === s ? "doing" : ""}" href="#partners/${s}">${cap(s)} ${D.partners.filter((x) => x.status === s).length}</a>`).join("")}</div></div>
+    ${list.length ? sections.map((sec) => `<div class="group"><h3 class="st">${esc(sec)}<span class="ct">${list.filter((x) => (x.section || "Other") === sec).length}</span></h3>${partnersHtml(list.filter((x) => (x.section || "Other") === sec))}</div>`).join("") : `<div class="empty">No partners${st ? " with that status" : ""} yet.</div>`}`;
 }
 
 function pageSearch(term) {
@@ -1036,6 +1255,7 @@ function pageSearch(term) {
   }).sort((a, b) => b.count - a.count);
   return `<div class="pagehead"><h2 class="pt">Results for "${esc(needle)}"</h2></div>
     ${t.length ? group("To-dos", sortTasks(t)) : ""}
+    ${(() => { const c = newestFirst(D.clients.rows.filter((r) => Object.values(r).join(" ").toLowerCase().includes(l))); return c.length ? `<div class="group"><h3 class="st">Client sign-ups<span class="ct">${c.length}</span></h3>${signupTable(c)}</div>` : ""; })()}
     <div class="group"><h3 class="st">Meetings, Slack and notes<span class="ct">${fileHits.length}</span></h3>${fileHits.length ? `<ul class="rows">${fileHits.map((h) => `<li><a class="rt" href="${docLink(h.p)}">${esc(h.title)}</a><span class="rm">${esc(h.when)} · ${h.count} match${h.count === 1 ? "" : "es"}</span><span class="rd">${h.snip}</span></li>`).join("")}</ul>` : `<div class="empty">No matches.</div>`}</div>`;
 }
 
@@ -1057,6 +1277,9 @@ function render() {
     case "todos": html = pageTodos(); break;
     case "projects": html = r.arg ? pageProject(r.arg) : pageProjects(); break;
     case "people": html = r.arg ? pagePerson(r.arg) : pagePeople(); break;
+    case "products": html = r.arg ? pageProduct(r.arg) : pageProducts(); break;
+    case "sales": html = pageSales(r.arg); break;
+    case "partners": html = pagePartners(r.arg); break;
     case "library": html = pageLibrary(); break;
     case "doc": html = pageDoc(r.arg); break;
     case "sops": html = pageSops(); break;
@@ -1208,6 +1431,29 @@ document.addEventListener("submit", (e) => {
       if (items.length) d.splice(d.indexOf(items[items.length - 1]) + 1, 0, t); else insertTop(d, "Checklist", t);
       return serialize(d);
     }, "launch item: " + short(title), "Added");
+  } else if (f.id === "clientForm") {
+    e.preventDefault();
+    const fd = new FormData(f), v = (k) => String(fd.get(k) || "").replace(/[\r\n]+/g, " ").trim();
+    if (!v("client")) { toast("Add the client's name first."); return; }
+    const row = { date: v("date") || todayStr(), date_approx: "no", client: v("client"), product: v("product"), term: v("term"), account_manager: v("account_manager"), source: v("source"), note: v("note") };
+    f.reset();
+    writeFile("clients/signups.csv", (text) => {
+      const rows = parseCsv(text || "date,date_approx,client,product,term,account_manager,source,note\n");
+      rows.push(rows[0].map((h) => row[h] ?? ""));
+      return rows.map((r) => r.map(csvCell).join(",")).join("\n") + "\n";
+    }, "sign-up " + row.client, "Sign-up added");
+  } else if (f.id === "revForm") {
+    e.preventDefault();
+    const amt = Number($("revAmt").value.replace(/[$,\s]/g, ""));
+    if (!Number.isFinite(amt) || amt <= 0) { toast("Type the total as a number, like 275000."); return; }
+    const period = f.dataset.period, goal = f.dataset.goal;
+    $("revAmt").value = "";
+    writeFile("revenue/milestones.csv", (text) => {
+      const rows = parseCsv(text || "date,date_approx,period,amount,kind,goal,note\n");
+      const row = { date: todayStr(), date_approx: "no", period, amount: String(amt), kind: amt >= Number(goal) ? "goal hit" : "milestone", goal, note: "added in To-Do Desk" };
+      rows.push(rows[0].map((h) => row[h] ?? ""));
+      return rows.map((r) => r.map(csvCell).join(",")).join("\n") + "\n";
+    }, "revenue " + money(amt), "Milestone saved");
   } else if (f.id === "leadsForm") {
     e.preventDefault();
     const fd = new FormData(f), head = D.leads.head;
