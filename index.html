@@ -448,7 +448,7 @@ function explain(e) {
 // Everything comes from git: the repo tree is listed, then each wanted file is read once per version (cached by its sha).
 const WANT = (p) => p === settings.path || p === "decisions.md" || p === "sops.md" || p === "calendar/upcoming.json" || p === "leads/weekly.csv" ||
   p === "clients/signups.csv" || p === "revenue/milestones.csv" || p === "revenue/README.md" || p === "partners.md" ||
-  /^(meetings|slack|projects|people|launches|reels|ai-bryan|products)\/[^/]+\.md$/.test(p);
+  /^(meetings|slack|projects|people|launches|reels|ai-bryan|products)\/[^/]+\.md$/.test(p) || /^daily\/\d{4}-\d{2}-\d{2}\.md$/.test(p);
 let files = {}, shas = {}, loaded = false, entries = [];
 function cacheGet(sha) { try { return localStorage.getItem("blob:" + sha); } catch (e) { return null; } }
 function cachePut(sha, text) { try { if (text.length < 400000) localStorage.setItem("blob:" + sha, text); } catch (e) {} }
@@ -545,6 +545,11 @@ function derive() {
   D.revenue = objs(files["revenue/milestones.csv"]).rows.map((r) => ({ ...r, amount: r.amount === "" ? NaN : Number(r.amount), goal: r.goal === "" ? NaN : Number(r.goal) }));
   D.yearGoal = (() => { const m = (files["revenue/README.md"] || "").match(/Year goal:\s*\$([\d.,]+)\s*(million|k)?/i); if (!m) return NaN; const n = Number(m[1].replace(/,/g, "")); return /million/i.test(m[2] || "") ? n * 1e6 : /k/i.test(m[2] || "") ? n * 1e3 : n; })();
   D.partners = parseEntries(files["partners.md"]).map((x) => ({ ...x, type: x.fields.type || "", status: x.fields.status || "active" }));
+  // Daily log: one file per day, newest first.
+  D.days = Object.keys(files).filter((p) => p.startsWith("daily/")).map((p) => {
+    const { meta, body } = frontmatter(files[p]);
+    return { path: p, date: fileSlug(p), meta, body, summary: sectionLines(body, "Summary").join(" ").replace(/\s+/g, " ").trim() };
+  }).sort((a, b) => b.date.localeCompare(a.date));
 }
 function guessProject(text) {
   const l = text.toLowerCase();
@@ -819,7 +824,7 @@ function pageTodos() {
 }
 
 // ===================== pages =====================
-const TABS = [["home", "Home"], ["todos", "To-dos"], ["projects", "Projects"], ["products", "Products"], ["sales", "Sales"], ["people", "People"], ["partners", "Partners"], ["library", "Meetings & Slack"], ["sops", "SOPs"], ["decisions", "Decisions"], ["launches", "Launches"], ["reels", "Reels"], ["leads", "Leads"], ["review", "Review"]];
+const TABS = [["home", "Home"], ["todos", "To-dos"], ["projects", "Projects"], ["products", "Products"], ["sales", "Sales"], ["people", "People"], ["partners", "Partners"], ["library", "Meetings & Slack"], ["sops", "SOPs"], ["decisions", "Decisions"], ["launches", "Launches"], ["reels", "Reels"], ["leads", "Leads"], ["daily", "Daily log"], ["review", "Review"]];
 let editingPath = null;
 function route() {
   let h = location.hash.replace(/^#/, "");
@@ -1066,6 +1071,21 @@ function sparkline(vals) {
   const pts = v.map((x, i) => [4 + (i * (w - 8)) / (v.length - 1), h - 4 - ((x - min) / r) * (h - 8)]);
   const last = pts[pts.length - 1];
   return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline points="${pts.map((p) => p.map((n) => n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="3" fill="currentColor"/></svg>`;
+}
+function pageDaily(arg) {
+  if (!D.days.length) return `<div class="pagehead"><h2 class="pt">Daily log</h2></div><div class="empty">No days logged yet. Each night at 11:20 PM Claude writes up the day here.</div>`;
+  const day = D.days.find((d) => d.date === arg) || D.days[0];
+  const m = day.meta, n = (k) => Number(m[k]) || 0, wm = n("work_minutes");
+  const stats = [[wm ? `${Math.floor(wm / 60)}h ${String(wm % 60).padStart(2, "0")}m` : "–", "Timer"], [n("meetings"), "Meetings"], [n("slack"), "Slack"], [n("todos_done"), "To-dos done"], [n("todos_added"), "To-dos added"], [n("decisions"), "Decisions"], [n("changes"), "Changes"]];
+  return `<div class="pagehead"><h2 class="pt">Daily log</h2><span class="sub">Everything you did each day, written up every night at 11:20 PM</span></div>
+  <div class="cols">
+    <div class="stack">
+      <div class="meta">${stats.map(([v, l]) => `<span class="chip">${esc(String(v))} ${esc(l)}</span>`).join("")}</div>
+      <div class="panel md">${renderMd(day.body, day.path)}</div>
+      <div class="hint"><a href="https://github.com/${esc(settings.owner)}/${esc(settings.repo)}/blob/${esc(settings.branch)}/${esc(enc(day.path))}" target="_blank" rel="noopener">Open in GitHub</a></div>
+    </div>
+    <div class="group"><h3 class="st">Days<span class="ct">${D.days.length}</span></h3><ul class="rows">${D.days.map((d) => `<li><a class="rt" href="#daily/${esc(d.date)}"${d === day ? ` aria-current="page"` : ""}>${d === day ? "▸ " : ""}${esc(fmtDay(d.date))}</a>${d.summary ? `<span class="rd">${esc(short(d.summary, 140))}</span>` : ""}</li>`).join("")}</ul></div>
+  </div>`;
 }
 function pageLeads() {
   const { head, rows } = D.leads;
@@ -1332,6 +1352,7 @@ function render() {
     case "launches": html = r.arg ? pageLaunch(r.arg) : pageLaunches(); break;
     case "reels": html = pageReels(); break;
     case "leads": html = pageLeads(); break;
+    case "daily": html = pageDaily(r.arg); break;
     case "review": html = pageReview(); break;
     case "search": html = pageSearch(r.arg); break;
     default: html = pageHome();
