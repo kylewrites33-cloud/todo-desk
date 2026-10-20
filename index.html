@@ -156,6 +156,12 @@ a.chip:hover { border-color: var(--accent); color: var(--accent); }
 .chip.doing { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
 .chip.pri { color: var(--late); border-color: transparent; background: var(--late-soft); font-weight: 600; }
 .notes-flag { color: var(--faint); }
+.tnote { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--muted); font-size: 13.5px; margin-top: 3px; font-weight: 400; }
+.ctx { margin: 0 12px 4px 44px; padding: 12px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 8px; }
+.ctx-h { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.ctx .md p { margin: 0 0 6px; }
+.ctx .md p:last-child { margin-bottom: 0; }
+.ctx-f { font-size: 12.5px; color: var(--faint); overflow-wrap: anywhere; }
 .followup { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; }
 .followup .formrow input[type=date] { flex: 0 0 auto; }
 .ract { display: flex; gap: 6px; align-items: center; }
@@ -599,8 +605,8 @@ function hubLink(p) {
   if (/^(clients|revenue)\//.test(p)) return "#sales";
   return "";
 }
-function renderMd(text, fromPath) {
-  const html = window.marked ? marked.parse(text, { gfm: true }) : "<pre style=\"white-space:pre-wrap\">" + esc(text) + "</pre>";
+function renderMd(text, fromPath, breaks = false) {
+  const html = window.marked ? marked.parse(text, { gfm: true, breaks }) : "<pre style=\"white-space:pre-wrap\">" + esc(text) + "</pre>";
   const box = document.createElement("div");
   box.innerHTML = window.DOMPurify ? DOMPurify.sanitize(html) : (window.marked ? "<pre style=\"white-space:pre-wrap\">" + esc(text) + "</pre>" : html);
   for (const a of box.querySelectorAll("a[href]")) {
@@ -700,17 +706,29 @@ function taskHtml(t, showProject = true) {
   if (t.t.fields.after) chips.push(`<span class="chip" title="${esc(t.t.fields.after)}">Follow-up to: ${esc(short(t.t.fields.after, 40))}</span>`);
   if (t.done && t.t.fields.followup) chips.push(`<span class="chip" title="${esc(t.t.fields.followup)}">Next: ${esc(short(t.t.fields.followup, 40))}</span>`);
   if (!t.due && !t.done && t.added) chips.push(`<span class="chip">Added ${esc(fmtDay(t.added))}</span>`);
-  if (t.notes) chips.push(`<span class="notes-flag">Notes</span>`);
   const isOpen = openKey === t.key;
+  const preview = t.notes && !isOpen ? t.notes.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_`#>]/g, "").replace(/\s+/g, " ").trim() : "";
   return `<li class="task p-${t.priority || "med"} ${t.done ? "done" : ""}" data-key="${esc(t.key)}">
     <div class="trow">
       <button class="check" data-act="toggle" aria-label="${t.done ? "Mark not done" : "Mark done"}"></button>
-      <button class="tbody" data-act="open" aria-expanded="${isOpen}"><span class="ttitle">${esc(t.title)}</span>${chips.length ? `<span class="meta">${chips.join("")}</span>` : ""}</button>
+      <button class="tbody" data-act="open" aria-expanded="${isOpen}"><span class="ttitle">${esc(t.title)}</span>${chips.length ? `<span class="meta">${chips.join("")}</span>` : ""}${preview ? `<span class="tnote">${esc(short(preview, 180))}</span>` : ""}</button>
       ${t.done ? "<span></span>" : `<span class="ract">${t.due ? "" : `<button class="btn small sched-btn" data-act="sched" aria-expanded="${schedKey === t.key}" title="Give it a due date so it shows in Upcoming">Schedule</button>`}<button class="star" data-act="star" aria-pressed="${t.star}" title="${t.star ? "Unstar: take it off Today" : "Star: pin it to Today without a due date"}" aria-label="${t.star ? "Unstar" : "Star to pin to Today"}">★</button></span>`}
     </div>
     ${schedKey === t.key && !t.due && !t.done ? schedHtml() : ""}
-    ${isOpen ? editHtml(t) : ""}
+    ${isOpen ? contextHtml(t) + editHtml(t) : ""}
   </li>`;
+}
+// The context window: a to-do's notes, where it came from and what it links to, readable as soon as it's opened.
+function contextHtml(t) {
+  const notes = t.notes.replace(/^([A-Z][A-Za-z' ]{1,30}):\s/gm, "**$1:** ");
+  const facts = [];
+  if (t.source) facts.push(`From <a href="${esc(t.source.url)}" ${t.source.url.startsWith("#") ? "" : 'target="_blank" rel="noopener"'}>${esc(t.source.label)}</a>`);
+  if (t.added) facts.push(`Added ${esc(fmtDay(t.added))}`);
+  if (t.t.fields.after) facts.push(`Follow-up to: ${esc(t.t.fields.after)}`);
+  if (t.t.fields.followup) facts.push(`Next: ${esc(t.t.fields.followup)}`);
+  return `<div class="ctx"><div class="ctx-h">Context</div>
+    ${t.notes ? `<div class="md">${renderMd(notes, settings.path, true)}</div>` : `<div class="hint">No context yet. Add notes below and they'll show here.</div>`}
+    ${facts.length ? `<div class="ctx-f">${facts.join(" · ")}</div>` : ""}</div>`;
 }
 let schedKey = null;
 function schedHtml() {
