@@ -520,7 +520,7 @@ function derive() {
     const date = (name.match(/^\d{4}-\d{2}-\d{2}/) || [""])[0] || String(meta.created_at || "").slice(0, 10);
     const hookSec = sectionLines(body, "Hook").map((l) => l.trim()).filter(Boolean).join(" ");
     const first = hookSec || body.split("\n").map((l) => l.replace(/^#+\s*|^\*\*|\*\*$|^Hook:\s*/gi, "").trim()).find(Boolean) || "";
-    return { path: p, name: meta.hook || name.replace(/^\d{4}-\d{2}-\d{2}\s*/, ""), date, status: meta.status || "written", hook: first, meta };
+    return { path: p, name: meta.hook || name.replace(/^\d{4}-\d{2}-\d{2}\s*/, ""), date, postOn: meta.post_on || "", status: meta.status || "written", hook: first, meta };
   }).sort((a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
   D.sops = parseSops(files["sops.md"]);
   // Calendar.
@@ -1029,13 +1029,15 @@ function pageLaunch(slug) {
 const REEL_STATUSES = ["written", "edited", "scheduled", "posted"];
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
 function reelsTable(list) {
-  return `<ul class="rows">${list.map((r) => `<li><div style="display:flex;gap:10px;align-items:start;justify-content:space-between;flex-wrap:wrap"><div style="min-width:0;flex:1 1 240px"><a class="rt" href="${docLink(r.path)}">${esc(short(r.name, 90))}</a>${r.hook && r.hook !== r.name ? `<div class="rd">${esc(short(r.hook, 160))}</div>` : ""}<div class="rm">${r.date ? "Written " + esc(fmtDay(r.date)) : ""}</div></div>
+  return `<ul class="rows">${list.map((r) => `<li><div style="display:flex;gap:10px;align-items:start;justify-content:space-between;flex-wrap:wrap"><div style="min-width:0;flex:1 1 240px"><a class="rt" href="${docLink(r.path)}">${esc(short(r.name, 90))}</a>${r.hook && r.hook !== r.name ? `<div class="rd">${esc(short(r.hook, 160))}</div>` : ""}<div class="rm">${[r.postOn ? (r.status === "posted" ? "Posted " : "Post on ") + esc(fmtDay(r.postOn)) : "", r.date ? "Written " + esc(fmtDay(r.date)) : ""].filter(Boolean).join(" · ")}</div></div>
     <select data-reel="${esc(r.path)}" aria-label="Status for ${esc(r.name)}">${REEL_STATUSES.map((s) => `<option value="${s}" ${s === r.status ? "selected" : ""}>${cap(s)}</option>`).join("")}</select></div></li>`).join("")}</ul>`;
 }
 function pageReels() {
+  const queue = D.reels.filter((r) => r.postOn && r.status !== "posted").sort((a, b) => a.postOn.localeCompare(b.postOn));
   return `<div class="pagehead"><h2 class="pt">Reels</h2><div class="meta">${REEL_STATUSES.map((s) => `<span class="chip">${cap(s)} ${D.reels.filter((r) => r.status === s).length}</span>`).join("")}</div></div>
-    <div class="hint">Each Reel moves from Written to Edited, Scheduled and Posted. Changing the status saves it into that Reel's file.</div>
-    ${D.reels.length ? reelsTable(D.reels) : `<div class="empty">No Reels saved yet. They appear here as soon as Claude writes them into reels/.</div>`}
+    <div class="hint">Each Reel moves from Written to Edited, Scheduled and Posted. Changing the status saves it into that Reel's file. One Reel posts per day; each morning that day's Reel is added to your to-dos.</div>
+    ${queue.length ? `<div class="group"><h3 class="st">Up next</h3>${reelsTable(queue)}</div>` : ""}
+    ${D.reels.length ? `<div class="group">${queue.length ? `<h3 class="st">All Reels</h3>` : ""}${reelsTable(D.reels)}</div>` : `<div class="empty">No Reels saved yet. They appear here as soon as Claude writes them into reels/.</div>`}
     ${D.sops.some((s) => /reel/i.test(s.project)) ? `<div class="group"><h3 class="st">Reels SOPs</h3>${sopsHtml(D.sops.filter((s) => /reel/i.test(s.project)))}</div>` : ""}`;
 }
 
