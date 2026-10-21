@@ -447,7 +447,7 @@ function explain(e) {
 // ===================== loading the workspace =====================
 // Everything comes from git: the repo tree is listed, then each wanted file is read once per version (cached by its sha).
 const WANT = (p) => p === settings.path || p === "decisions.md" || p === "sops.md" || p === "calendar/upcoming.json" || p === "leads/weekly.csv" ||
-  p === "clients/signups.csv" || p === "revenue/milestones.csv" || p === "revenue/README.md" || p === "partners.md" ||
+  p === "clients/signups.csv" || p === "clients/README.md" || p === "revenue/milestones.csv" || p === "revenue/README.md" || p === "partners.md" ||
   /^(meetings|slack|projects|people|launches|reels|ai-bryan|products)\/[^/]+\.md$/.test(p) || /^daily\/\d{4}-\d{2}-\d{2}\.md$/.test(p);
 let files = {}, shas = {}, loaded = false, entries = [];
 function cacheGet(sha) { try { return localStorage.getItem("blob:" + sha); } catch (e) { return null; } }
@@ -541,7 +541,7 @@ function derive() {
   }).sort((a, b) => a.name.localeCompare(b.name));
   const objs = (text) => { const r = parseCsv(text || ""); const head = r[0] || []; return { head, rows: r.slice(1).map((x) => Object.fromEntries(head.map((h, i) => [h, (x[i] || "").trim()]))) }; };
   D.clients = objs(files["clients/signups.csv"]);
-  D.clients.rows.forEach((r, i) => { r.i = i; r.lost = /cancel|refund/i.test(r.term); });
+  D.clients.rows.forEach((r, i) => { r.i = i; r.lost = /cancel|refund/i.test(r.term); r.notSale = /not a sale/i.test(r.source_type || ""); r.fresh = !r.lost && !r.notSale && !/renewal/i.test((r.source_type || "") + " " + r.term); });
   D.revenue = objs(files["revenue/milestones.csv"]).rows.map((r) => ({ ...r, amount: r.amount === "" ? NaN : Number(r.amount), goal: r.goal === "" ? NaN : Number(r.goal) }));
   D.yearGoal = (() => { const m = (files["revenue/README.md"] || "").match(/Year goal:\s*\$([\d.,]+)\s*(million|k)?/i); if (!m) return NaN; const n = Number(m[1].replace(/,/g, "")); return /million/i.test(m[2] || "") ? n * 1e6 : /k/i.test(m[2] || "") ? n * 1e3 : n; })();
   D.partners = parseEntries(files["partners.md"]).map((x) => ({ ...x, type: x.fields.type || "", status: x.fields.status || "active" }));
@@ -1193,7 +1193,15 @@ function revenueCard() {
     ${r.last ? `<span class="rm hint">Last update ${esc(dayLabel(r.last))}${Number.isFinite(D.yearGoal) ? ` · Year goal ${esc(money(D.yearGoal))}` : ""}</span>` : ""}</a>`;
 }
 // Group sign-ups by product, account manager or source, folding spellings of the same person or product together.
+// Tiers Bryan watches: Groundbreakers, Agency (including one-off ad work), Pathfinders; everything else is Other.
+function tierOf(product) {
+  const l = (product || "").toLowerCase();
+  return /groundbreak/.test(l) ? "Groundbreakers" : /agency|facebook ads/.test(l) ? "Agency" : /pathfinder/.test(l) ? "Pathfinders" : "Other";
+}
+const TIERS = ["Groundbreakers", "Agency", "Pathfinders", "Other"];
 function keyVal(r, key) {
+  if (key === "tier") return tierOf(r.product);
+  if (key === "source_type") return r.lost ? "cancelled or refunded" : r.source_type || "unknown";
   const v = r[key] || ""; if (!v) return "Not recorded";
   if (key === "account_manager") { const p = personFor(v.replace(/\s*\(.*\)\s*/, "")); return p ? p.name : v; }
   if (key === "product") { const p = productFor(v); return p ? p.name : v; }
@@ -1208,14 +1216,46 @@ function breakdown(title, key, list, filter) {
   const rows = countBy(list, key), max = rows[0] ? rows[0][1] : 1;
   return `<div class="group"><h3 class="st">${title}</h3><ul class="rows">${rows.map(([k, n]) => `<li class="countrow"><a href="#sales/${key}:${encodeURIComponent(k)}" ${filter && filter.key === key && filter.val === k ? 'aria-current="true"' : ""}><span class="cl">${esc(k)}</span><span class="cbar"><span style="width:${Math.round((n / max) * 100)}%"></span></span><span class="cn">${n}</span></a></li>`).join("")}</ul></div>`;
 }
-function signupTable(list, cols = ["date", "client", "product", "term", "account_manager", "source", "note"]) {
-  const label = { date: "Date", client: "Client", product: "Product", term: "Term", account_manager: "Account manager", source: "Source", note: "Note" };
+function signupTable(list, cols = ["date", "client", "product", "term", "account_manager", "source_type", "source", "note"]) {
+  const label = { date: "Date", client: "Client", product: "Product", term: "Term", account_manager: "Account manager", source_type: "Source type", source: "Source", note: "Note" };
   const cell = (r, c) => c === "date" ? esc(dayLabel(r)) : c === "product" ? productChip(r.product) : c === "account_manager" ? (r.account_manager ? personChip(r.account_manager) : "") : c === "term" && r.lost ? `<span class="chip late">${esc(r.term)}</span>` : esc(r[c] || "");
   return `<div class="tablewrap"><table class="data"><thead><tr>${cols.map((c) => `<th>${label[c]}</th>`).join("")}</tr></thead><tbody>${list.map((r) => `<tr>${cols.map((c) => `<td class="${c === "note" ? "note" : ""}">${cell(r, c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
+// New sign-ups counted by week (Monday start) or month, one column per tier.
+function mondayOf(s) { const d = parseYmd(s); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return ymd(d); }
+function tierTable(list, keyFn, keys, labelFn, first = "") {
+  const cnt = (k, t) => list.filter((r) => keyFn(r.date) === k && (!t || tierOf(r.product) === t)).length;
+  return `<div class="tablewrap"><table class="data"><thead><tr><th>${first}</th>${TIERS.map((t) => `<th class="num">${t}</th>`).join("")}<th class="num">Total</th></tr></thead><tbody>${keys.map((k) => `<tr><td>${esc(labelFn(k))}</td>${TIERS.map((t) => { const n = cnt(k, t); return `<td class="num">${n || `<span class="hint">0</span>`}</td>`; }).join("")}<td class="num"><strong>${cnt(k)}</strong></td></tr>`).join("")}</tbody></table></div>`;
+}
+function newClientsSection(fresh, filter) {
+  const weeks = []; for (let i = 0; i < 8; i++) weeks.push(mondayOf(ymd(new Date(Date.now() - i * 7 * 86400000))));
+  const months = [...new Set(fresh.map((r) => r.date.slice(0, 7)))].sort().reverse();
+  const monthName = (m) => parseYmd(m + "-01").toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const d30 = ymd(new Date(Date.now() - 30 * 86400000)), recent = fresh.filter((r) => r.date >= d30);
+  const unknown = recent.filter((r) => keyVal(r, "source_type") === "unknown").length;
+  const lastGb = newestFirst(fresh.filter((r) => tierOf(r.product) === "Groundbreakers"))[0];
+  const readme = files["clients/README.md"] || "", gaps = readme.split(/^## Filling the gaps\s*$/m)[1] || "";
+  return `<div class="group"><h3 class="st">New clients</h3>
+    <div class="cards">
+      ${TIERS.slice(0, 3).map((t) => { const n = recent.filter((r) => tierOf(r.product) === t).length; const last = t === "Groundbreakers" && !n && lastGb ? `last one ${esc(dayLabel(lastGb))}` : "in the last 30 days"; return `<a class="card stat-card" href="#sales/tier:${t}"><span class="d">New ${t}</span><span class="v">${n}</span><span class="d">${last}</span></a>`; }).join("")}
+      <a class="card stat-card" href="#sales/source_type:unknown"><span class="d">Source unknown</span><span class="v">${unknown} <span class="of">of ${recent.length}</span></span><span class="d">in the last 30 days</span></a>
+    </div>
+    <span class="hint">New sign-ups only: renewals, cancellations and refunds are left out. Click a number to list those sign-ups.</span>
+  </div>
+  <div class="cards wide" style="grid-template-columns:repeat(auto-fill,minmax(min(640px,100%),1fr))">
+    <div class="group"><h3 class="st">By week (last 8 weeks)</h3>${tierTable(fresh, mondayOf, weeks, (k) => parseYmd(k).toLocaleDateString(undefined, { day: "numeric", month: "short" }), "Week of")}</div>
+    <div class="group"><h3 class="st">By month</h3>${tierTable(fresh, (d) => d.slice(0, 7), months, monthName, "Month")}</div>
+  </div>
+  <div class="cards wide">
+    ${breakdown("By tier", "tier", fresh, filter)}
+    ${breakdown("By source type", "source_type", fresh, filter)}
+    ${breakdown("Source in the last 30 days", "source_type", recent, null)}
+  </div>
+  ${gaps.trim() ? `<details class="panel"><summary><strong>Filling the unknown sources</strong> <span class="hint">what to ask for or paste</span></summary><div class="md">${renderMd(gaps, "clients/README.md")}</div></details>` : ""}`;
+}
 const newestFirst = (list) => list.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.i - a.i);
 function pageSales(arg) {
-  const all = D.clients.rows, signups = all.filter((r) => !r.lost);
+  const all = D.clients.rows, signups = all.filter((r) => !r.lost && !r.notSale), fresh = all.filter((r) => r.fresh);
   const i = (arg || "").indexOf(":");
   const filter = i > 0 ? { key: arg.slice(0, i), val: arg.slice(i + 1) } : null;
   const shown = newestFirst(filter ? all.filter((r) => keyVal(r, filter.key) === filter.val) : all);
@@ -1223,13 +1263,14 @@ function pageSales(arg) {
   const periods = goalPeriods(), cur = periods[periods.length - 1];
   const csvProducts = [...new Set(all.map((r) => r.product).filter(Boolean))];
   const productOpts = csvProducts.concat(D.products.filter((p) => !csvProducts.some((n) => productFor(n) === p)).map((p) => p.name)).sort((a, b) => all.filter((r) => r.product === b).length - all.filter((r) => r.product === a).length || a.localeCompare(b));
-  const fLabel = filter ? { product: "Product", account_manager: "Account manager", source: "Source" }[filter.key] || "" : "";
+  const fLabel = filter ? { product: "Product", account_manager: "Account manager", source: "Source", tier: "Tier", source_type: "Source type" }[filter.key] || "" : "";
   return `<div class="pagehead"><div><h2 class="pt">Sales</h2><span class="sub">Revenue from Charlene's posts and every client sign-up, from revenue/ and clients/</span></div></div>
   <div class="cards">
     ${revenueCard()}
     <a class="card stat-card" href="#sales"><span class="d">Sign-ups in the last 30 days</span><span class="v">${signups.filter((r) => r.date >= d30).length}</span><span class="d">${signups.filter((r) => r.date >= d7).length} in the last 7 days</span></a>
-    <div class="card stat-card"><span class="d">All sign-ups on record</span><span class="v">${signups.length}</span><span class="d">${all.length - signups.length} cancelled or refunded</span></div>
+    <div class="card stat-card"><span class="d">All sign-ups on record</span><span class="v">${signups.length}</span><span class="d">${all.filter((r) => r.lost).length} cancelled or refunded</span></div>
   </div>
+  ${newClientsSection(fresh, filter)}
   ${cur ? `<form class="panel formrow" id="revForm" data-period="${esc(cur.period)}" data-goal="${esc(String(cur.goal))}" autocomplete="off"><label for="revAmt"><strong>${esc(cur.period)} total so far</strong></label><input type="text" id="revAmt" inputmode="decimal" placeholder="e.g. 275000" style="flex:0 1 180px"><button class="btn primary" type="submit">Save milestone</button><span class="hint">Adds today's row to revenue/milestones.csv.</span></form>` : ""}
   <div class="cards wide">
       ${breakdown("By product", "product", signups, filter)}
@@ -1241,11 +1282,12 @@ function pageSales(arg) {
       <details class="panel"><summary><strong>Add a sign-up</strong></summary>
         <form id="clientForm" autocomplete="off" style="display:grid;gap:10px;margin-top:10px"><div class="fields">
           <label class="field">Date<input type="date" name="date" value="${todayStr()}"></label>
-          <label class="field">Client<input name="client" required></label>
+          <label class="field">Client code<input name="client" required placeholder="next code, e.g. C044, never a name"></label>
           <label class="field">Product<select name="product">${productOpts.map((n) => `<option>${esc(n)}</option>`).join("")}</select></label>
           <label class="field">Term<input name="term" placeholder="e.g. 4 months, renewal, cancelled"></label>
           <label class="field">Account manager<input name="account_manager" list="peopleList"></label>
           <label class="field">Source<input name="source" placeholder="e.g. K-Lytics webinar"></label>
+          <label class="field">Source type<select name="source_type">${["unknown", "webinar", "challenge", "referral", "ad", "instagram", "ladder", "team close", "returning", "renewal", "other"].map((n) => `<option>${n}</option>`).join("")}</select></label>
           <label class="field wide">Note<input name="note"></label>
         </div><div class="actions"><button class="btn primary" type="submit">Add sign-up</button></div></form>
         <datalist id="peopleList">${D.people.map((p) => `<option value="${esc(p.name)}">`).join("")}</datalist></details>
@@ -1515,11 +1557,11 @@ document.addEventListener("submit", (e) => {
   } else if (f.id === "clientForm") {
     e.preventDefault();
     const fd = new FormData(f), v = (k) => String(fd.get(k) || "").replace(/[\r\n]+/g, " ").trim();
-    if (!v("client")) { toast("Add the client's name first."); return; }
-    const row = { date: v("date") || todayStr(), date_approx: "no", client: v("client"), product: v("product"), term: v("term"), account_manager: v("account_manager"), source: v("source"), note: v("note") };
+    if (!v("client")) { toast("Add the client's code first (like C044, never a name)."); return; }
+    const row = { date: v("date") || todayStr(), date_approx: "no", client: v("client"), product: v("product"), term: v("term"), account_manager: v("account_manager"), source: v("source"), source_type: v("source_type"), note: v("note") };
     f.reset();
     writeFile("clients/signups.csv", (text) => {
-      const rows = parseCsv(text || "date,date_approx,client,product,term,account_manager,source,note\n");
+      const rows = parseCsv(text || "date,date_approx,client,product,term,account_manager,source,source_type,note\n");
       rows.push(rows[0].map((h) => row[h] ?? ""));
       return rows.map((r) => r.map(csvCell).join(",")).join("\n") + "\n";
     }, "sign-up " + row.client, "Sign-up added");
